@@ -8,12 +8,14 @@ struct NearButFarPhoneApp: App {
         WindowGroup {
             PhoneContentView()
                 .environmentObject(central)
+                .environmentObject(central.model)
         }
     }
 }
 
 private struct PhoneContentView: View {
     @EnvironmentObject private var central: PhoneCentral
+    @EnvironmentObject private var model: PhoneModel
 
     var body: some View {
         NavigationStack {
@@ -70,9 +72,9 @@ private struct PhoneContentView: View {
                     .foregroundStyle(.secondary)
             }
 
-            if central.presenceState != .unavailable {
+            if model.presenceState != .unavailable {
                 HStack(spacing: 18) {
-                    metric(label: "Last RSSI", value: central.lastRSSI.map { "\($0) dBm" } ?? "—")
+                    metric(label: "Last RSSI", value: model.lastRSSI.map { "\($0) dBm" } ?? "—")
                     metric(label: "Test threshold", value: "\(PresenceTracker.weakSignalThreshold) dBm")
                 }
                 .padding(.top, 2)
@@ -98,7 +100,7 @@ private struct PhoneContentView: View {
     }
 
     private var statusTitle: String {
-        switch central.presenceState {
+        switch model.presenceState {
         case .waiting: "Waiting for Mac"
         case .nearby: "Nearby"
         case .weakSignalCountdown: "Weak signal"
@@ -109,7 +111,7 @@ private struct PhoneContentView: View {
     }
 
     private var statusDetail: String {
-        switch central.presenceState {
+        switch model.presenceState {
         case .waiting: central.connectionState
         case .nearby: "Mac responding · \(central.connectionState)"
         case .weakSignalCountdown: "At or below −70 dBm · phone-side estimate"
@@ -120,14 +122,14 @@ private struct PhoneContentView: View {
     }
 
     private var countdownSeconds: Int? {
-        switch central.presenceState {
+        switch model.presenceState {
         case .weakSignalCountdown(let seconds), .connectionLostCountdown(let seconds): seconds
         default: nil
         }
     }
 
     private var statusSymbol: String {
-        switch central.presenceState {
+        switch model.presenceState {
         case .waiting: "dot.radiowaves.left.and.right"
         case .nearby: "dot.radiowaves.left.and.right"
         case .weakSignalCountdown, .connectionLostCountdown: "hourglass"
@@ -137,7 +139,7 @@ private struct PhoneContentView: View {
     }
 
     private var statusTint: Color {
-        switch central.presenceState {
+        switch model.presenceState {
         case .waiting, .unavailable: .secondary
         case .nearby: .mint
         case .weakSignalCountdown: .orange

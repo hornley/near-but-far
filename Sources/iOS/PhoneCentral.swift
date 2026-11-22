@@ -2,27 +2,11 @@ import CoreBluetooth
 import Foundation
 import SwiftUI
 
-enum PhonePresenceState: Equatable {
-    case waiting
-    case nearby
-    case weakSignalCountdown(Int)
-    case connectionLostCountdown(Int)
-    case wouldLock
-    case unavailable
-}
-
-private enum PresenceLossReason: Equatable {
-    case weakSignal
-    case connectionLost
-}
-
 @MainActor
 final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralManagerDelegate, @preconcurrency CBPeripheralDelegate {
     @Published private(set) var bluetoothState = "Starting"
     @Published private(set) var connectionState = "Scanning"
-    @Published private(set) var lastRSSI: Int?
     @Published private(set) var events: [String]
-    @Published private(set) var presenceState: PhonePresenceState = .waiting
 
     private let restorationID = "com.hornley.nearbutfar.phone.central"
     private let eventsKey = "nearButFar.bleEvents"
@@ -31,13 +15,15 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
     private var challengeCharacteristic: CBCharacteristic?
     private var acknowledgementCharacteristic: CBCharacteristic?
     private var lastSequence: UInt32?
-    private var pendingRSSISequence: UInt32?
-    private var presenceTracker = PresenceTracker()
-    private var lastChallengeAt: ContinuousClock.Instant?
     private var presenceTimer: Timer?
-    private var presenceLossReason: PresenceLossReason?
+    private(set) var connectionGeneration: UInt64 = 0
+    private var rssiReadInFlight = false
+    private var rssiReadGeneration: UInt64?
+    private var pendingRSSISequence: UInt32?
+    let model: PhoneModel
 
-    override init() {
+    init(model: PhoneModel? = nil) {
+        self.model = model ?? PhoneModel()
         events = UserDefaults.standard.stringArray(forKey: eventsKey) ?? []
         super.init()
         central = CBCentralManager(
@@ -47,7 +33,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         )
         presenceTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
-                self?.refreshPresence()
+                self?.model.refreshPresence()
             }
         }
     }
@@ -57,6 +43,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
             connectionState = "Bluetooth unavailable"
             return
         }
+        connectionGeneration &+= 1
         peripheral = nil
         challengeCharacteristic = nil
         acknowledgementCharacteristic = nil
@@ -70,13 +57,11 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         bluetoothState = stateName(central.state)
         record("bluetooth_\(bluetoothState.lowercased().replacingOccurrences(of: " ", with: "_"))")
         if central.state == .poweredOn {
+            model.setBluetoothAvailable(true)
             scanAgain()
         } else {
             connectionState = "Bluetooth unavailable"
-            presenceTracker = PresenceTracker()
-            lastChallengeAt = nil
-            presenceLossReason = nil
-            presenceState = .unavailable
+            model.setBluetoothAvailable(false)
         }
     }
 
@@ -84,6 +69,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         record("core_bluetooth_restored")
         guard let peripherals = dict[CBCentralManagerRestoredStatePeripheralsKey] as? [CBPeripheral],
               let restored = peripherals.first else { return }
+        connectionGeneration &+= 1
         peripheral = restored
         restored.delegate = self
         connectionState = "Restoring connection"
@@ -92,6 +78,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
 
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
         record("discovered_rssi_\(RSSI.intValue)")
+        connectionGeneration &+= 1
         self.peripheral = peripheral
         peripheral.delegate = self
         central.stopScan()
@@ -100,10 +87,14 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
     }
 
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+        guard peripheral === self.peripheral else { return }
+        connectionGeneration &+= 1
         record("connected")
         connectionState = "Discovering service"
         lastSequence = nil // The Mac restarts its challenge counter when its app restarts.
         pendingRSSISequence = nil
+        challengeCharacteristic = nil
+        acknowledgementCharacteristic = nil
         peripheral.delegate = self
         peripheral.discoverServices([BLEProtocol.serviceUUID])
     }
@@ -115,16 +106,18 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
     }
 
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
+        guard peripheral === self.peripheral else { return }
+        connectionGeneration &+= 1
         record("disconnected")
         connectionState = "Disconnected; scanning again"
         challengeCharacteristic = nil
         acknowledgementCharacteristic = nil
-        startEstimatedLoss(at: ContinuousClock.now)
-        refreshPresence()
+        model.didDisconnect(at: ContinuousClock.now)
         scanAgainAfterDelay()
     }
 
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
+        guard peripheral === self.peripheral else { return }
         guard error == nil, let service = peripheral.services?.first(where: { $0.uuid == BLEProtocol.serviceUUID }) else {
             record("service_discovery_failed")
             connectionState = "Service unavailable"
@@ -134,6 +127,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
     }
 
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
+        guard peripheral === self.peripheral else { return }
         guard error == nil, let characteristics = service.characteristics else {
             record("characteristic_discovery_failed")
             connectionState = "Characteristics unavailable"
@@ -150,15 +144,12 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
     }
 
     func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
+        guard peripheral === self.peripheral else { return }
         if error == nil, characteristic.isNotifying {
             connectionState = "Connected to Mac"
             record("subscribed_to_challenges")
-            let now = ContinuousClock.now
-            lastChallengeAt = now
-            if !presenceTracker.isArmed {
-                presenceTracker.acknowledge(at: now)
-            }
-            refreshPresence(at: now)
+            model.setBluetoothAvailable(true)
+            model.didSubscribe(at: ContinuousClock.now)
         } else {
             connectionState = "Challenge subscription failed"
             record("subscription_failed")
@@ -166,52 +157,72 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
     }
 
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
+        guard peripheral === self.peripheral else { return }
         guard error == nil,
               characteristic.uuid == BLEProtocol.challengeUUID,
               let data = characteristic.value,
               let sequence = BLEProtocol.decodeChallenge(data),
               acknowledgementCharacteristic != nil else { return }
 
-        if let lastSequence, sequence < lastSequence {
-            record("stale_challenge_\(sequence)")
-            return
+        if let lastSequence {
+            if sequence == lastSequence {
+                record("duplicate_challenge_\(sequence)")
+                model.didReceiveChallenge(at: ContinuousClock.now)
+                return
+            }
+            if sequence < lastSequence {
+                record("stale_challenge_\(sequence)")
+                return
+            }
         }
         lastSequence = sequence
+        let now = ContinuousClock.now
+        model.didReceiveChallenge(at: now)
+        guard !rssiReadInFlight else {
+            if pendingRSSISequence == sequence {
+                record("duplicate_challenge_\(sequence)")
+            }
+            return
+        }
         pendingRSSISequence = sequence
-        lastChallengeAt = ContinuousClock.now
-        peripheral.readRSSI()
+        startRSSIRead(on: peripheral)
     }
 
     func peripheral(_ peripheral: CBPeripheral, didReadRSSI RSSI: NSNumber, error: Error?) {
-        guard let sequence = pendingRSSISequence,
-              let acknowledgementCharacteristic,
-              let peripheral = self.peripheral else { return }
-        let rssi = error == nil ? Int16(clamping: RSSI.intValue) : nil
-        lastRSSI = rssi.map(Int.init)
-        let now = ContinuousClock.now
-        let wasCountingDown = presenceTracker.lossStartedAt != nil
-        presenceTracker.observeRSSI(rssi, at: now)
-        if let rssi {
-            if rssi <= PresenceTracker.weakSignalThreshold {
-                presenceLossReason = .weakSignal
-                if !wasCountingDown, presenceTracker.lossStartedAt != nil {
-                    record("weak_signal_started_\(rssi)_dbm_threshold_\(PresenceTracker.weakSignalThreshold)")
-                }
-            } else {
-                presenceLossReason = nil
-                if wasCountingDown, presenceTracker.lossStartedAt == nil {
-                    record("signal_recovered_\(rssi)_dbm")
-                }
-            }
+        guard rssiReadInFlight else { return }
+        rssiReadInFlight = false
+        let callbackGeneration = rssiReadGeneration
+        rssiReadGeneration = nil
+        guard peripheral === self.peripheral,
+              callbackGeneration == connectionGeneration,
+              let sequence = pendingRSSISequence,
+              let acknowledgementCharacteristic else {
+            pendingRSSISequence = nil
+            return
         }
-        let data = BLEProtocol.encodeAcknowledgement(sequence: sequence, rssi: rssi)
-        peripheral.writeValue(data, for: acknowledgementCharacteristic, type: .withResponse)
+
+        let value = error == nil ? RSSI.intValue : nil
+        let rssi: Int16? = value.flatMap { (-127...20).contains($0) ? Int16($0) : nil }
+        let now = ContinuousClock.now
+        model.didReadRSSI(rssi, at: now)
+        peripheral.writeValue(
+            BLEProtocol.encodeAcknowledgement(sequence: sequence, rssi: rssi),
+            for: acknowledgementCharacteristic,
+            type: .withResponse
+        )
         pendingRSSISequence = nil
         record(rssi.map { "rssi_\($0)_ack_\(sequence)" } ?? "rssi_unavailable_ack_\(sequence)")
-        refreshPresence(at: now)
+    }
+
+    private func startRSSIRead(on peripheral: CBPeripheral) {
+        guard !rssiReadInFlight, peripheral === self.peripheral else { return }
+        rssiReadInFlight = true
+        rssiReadGeneration = connectionGeneration
+        peripheral.readRSSI()
     }
 
     func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
+        guard peripheral === self.peripheral else { return }
         record(error == nil ? "acknowledgement_written" : "acknowledgement_write_failed")
     }
 
@@ -219,55 +230,6 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
             guard let self, self.central.state == .poweredOn else { return }
             self.scanAgain()
-        }
-    }
-
-    private func startEstimatedLoss(at time: ContinuousClock.Instant) {
-        guard presenceTracker.isArmed else { return }
-        let wasCountingDown = presenceTracker.lossStartedAt != nil
-        presenceTracker.missedChallenge(at: time)
-        if presenceTracker.lossStartedAt != nil {
-            presenceLossReason = .connectionLost
-        }
-        if !wasCountingDown, presenceTracker.lossStartedAt != nil {
-            record("estimated_presence_lost")
-        }
-    }
-
-    private func refreshPresence(at now: ContinuousClock.Instant = ContinuousClock.now) {
-        guard central.state == .poweredOn else {
-            presenceState = .unavailable
-            return
-        }
-
-        if let lastChallengeAt,
-           presenceTracker.isArmed,
-           presenceTracker.lossStartedAt == nil,
-           lastChallengeAt.duration(to: now) >= .seconds(10) {
-            startEstimatedLoss(at: lastChallengeAt.advanced(by: .seconds(10)))
-        }
-
-        if presenceTracker.takeWouldLock(at: now) {
-            record("phone_estimated_would_lock")
-        }
-
-        guard presenceTracker.isArmed else {
-            presenceLossReason = nil
-            presenceState = .waiting
-            return
-        }
-
-        if let remaining = presenceTracker.secondsRemaining(at: now) {
-            if remaining == 0 {
-                presenceState = .wouldLock
-            } else if presenceLossReason == .weakSignal {
-                presenceState = .weakSignalCountdown(remaining)
-            } else {
-                presenceState = .connectionLostCountdown(remaining)
-            }
-        } else {
-            presenceLossReason = nil
-            presenceState = .nearby
         }
     }
 

@@ -21,6 +21,7 @@
 		B00000000000000000000012 /* PresenceTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000002 /* PresenceTracker.swift */; };
 		B00000000000000000000013 /* ChallengeSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000003 /* ChallengeSchedule.swift */; };
 		B00000000000000000000014 /* MacCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000015 /* MacCoordinator.swift */; };
+		B00000000000000000000015 /* PhoneModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000024 /* PhoneModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,6 +39,7 @@
 		F00000000000000000000021 /* NearButFarPhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearButFarPhoneApp.swift; sourceTree = "<group>"; };
 		F00000000000000000000022 /* PhoneCentral.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneCentral.swift; sourceTree = "<group>"; };
 		F00000000000000000000023 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		F00000000000000000000024 /* PhoneModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneModel.swift; sourceTree = "<group>"; };
 		F00000000000000000000031 /* NearButFarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearButFarTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -113,6 +115,7 @@
 				F00000000000000000000021 /* NearButFarPhoneApp.swift */,
 				F00000000000000000000022 /* PhoneCentral.swift */,
 				F00000000000000000000023 /* Info.plist */,
+				F00000000000000000000024 /* PhoneModel.swift */,
 			);
 			path = iOS;
 			sourceTree = "<group>";
@@ -278,6 +281,7 @@
 				B00000000000000000000007 /* PhoneCentral.swift in Sources */,
 				B00000000000000000000008 /* BLEProtocol.swift in Sources */,
 				B00000000000000000000012 /* PresenceTracker.swift in Sources */,
+				B00000000000000000000015 /* PhoneModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
