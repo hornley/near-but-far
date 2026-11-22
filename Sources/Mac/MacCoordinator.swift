@@ -110,7 +110,6 @@ final class MacCoordinator: ObservableObject {
         logger?.log("acknowledgement", sequence: acknowledgement.sequence, rssi: acknowledgement.rssi,
                     details: acknowledgement.rssi == nil ? "rssi_unavailable" : "")
         outstandingSequence = nil
-        queueBlocked = false
         refreshDisplay(at: now)
         scheduleChallengeTick(after: 1)
         return true
