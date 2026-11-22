@@ -1,0 +1,439 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 71;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		B00000000000000000000001 /* NearButFarMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000011 /* NearButFarMacApp.swift */; };
+		B00000000000000000000002 /* MacPeripheral.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000012 /* MacPeripheral.swift */; };
+		B00000000000000000000003 /* CSVLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000013 /* CSVLogger.swift */; };
+		B00000000000000000000004 /* BLEProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000001 /* BLEProtocol.swift */; };
+		B00000000000000000000005 /* PresenceTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000002 /* PresenceTracker.swift */; };
+		B00000000000000000000006 /* NearButFarPhoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000021 /* NearButFarPhoneApp.swift */; };
+		B00000000000000000000007 /* PhoneCentral.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000022 /* PhoneCentral.swift */; };
+		B00000000000000000000008 /* BLEProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000001 /* BLEProtocol.swift */; };
+		B00000000000000000000009 /* BLEProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000001 /* BLEProtocol.swift */; };
+		B00000000000000000000010 /* PresenceTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000002 /* PresenceTracker.swift */; };
+		B00000000000000000000011 /* NearButFarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000031 /* NearButFarTests.swift */; };
+		B00000000000000000000012 /* PresenceTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000002 /* PresenceTracker.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		E00000000000000000000001 /* NearButFarMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NearButFarMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E00000000000000000000002 /* NearButFarPhone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NearButFarPhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E00000000000000000000003 /* NearButFarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NearButFarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F00000000000000000000001 /* BLEProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEProtocol.swift; sourceTree = "<group>"; };
+		F00000000000000000000002 /* PresenceTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresenceTracker.swift; sourceTree = "<group>"; };
+		F00000000000000000000011 /* NearButFarMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearButFarMacApp.swift; sourceTree = "<group>"; };
+		F00000000000000000000012 /* MacPeripheral.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacPeripheral.swift; sourceTree = "<group>"; };
+		F00000000000000000000013 /* CSVLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVLogger.swift; sourceTree = "<group>"; };
+		F00000000000000000000014 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		F00000000000000000000021 /* NearButFarPhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearButFarPhoneApp.swift; sourceTree = "<group>"; };
+		F00000000000000000000022 /* PhoneCentral.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneCentral.swift; sourceTree = "<group>"; };
+		F00000000000000000000023 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		F00000000000000000000031 /* NearButFarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearButFarTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C00000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C00000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C00000000000000000000003 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		900000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				900000000000000000000002 /* Sources */,
+				900000000000000000000006 /* Tests */,
+				900000000000000000000007 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		900000000000000000000002 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				900000000000000000000003 /* Shared */,
+				900000000000000000000004 /* Mac */,
+				900000000000000000000005 /* iOS */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		900000000000000000000003 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				F00000000000000000000001 /* BLEProtocol.swift */,
+				F00000000000000000000002 /* PresenceTracker.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		900000000000000000000004 /* Mac */ = {
+			isa = PBXGroup;
+			children = (
+				F00000000000000000000011 /* NearButFarMacApp.swift */,
+				F00000000000000000000012 /* MacPeripheral.swift */,
+				F00000000000000000000013 /* CSVLogger.swift */,
+				F00000000000000000000014 /* Info.plist */,
+			);
+			path = Mac;
+			sourceTree = "<group>";
+		};
+		900000000000000000000005 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				F00000000000000000000021 /* NearButFarPhoneApp.swift */,
+				F00000000000000000000022 /* PhoneCentral.swift */,
+				F00000000000000000000023 /* Info.plist */,
+			);
+			path = iOS;
+			sourceTree = "<group>";
+		};
+		900000000000000000000006 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				F00000000000000000000031 /* NearButFarTests.swift */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		900000000000000000000007 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E00000000000000000000001 /* NearButFarMac.app */,
+				E00000000000000000000002 /* NearButFarPhone.app */,
+				E00000000000000000000003 /* NearButFarTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		800000000000000000000001 /* NearButFarMac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D00000000000000000000004 /* Build configuration list for PBXNativeTarget "NearButFarMac" */;
+			buildPhases = (
+				700000000000000000000001 /* Sources */,
+				C00000000000000000000001 /* Frameworks */,
+				600000000000000000000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NearButFarMac;
+			productName = NearButFarMac;
+			productReference = E00000000000000000000001 /* NearButFarMac.app */;
+			productType = "com.apple.product-type.application";
+		};
+		800000000000000000000002 /* NearButFarPhone */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D00000000000000000000005 /* Build configuration list for PBXNativeTarget "NearButFarPhone" */;
+			buildPhases = (
+				700000000000000000000002 /* Sources */,
+				C00000000000000000000002 /* Frameworks */,
+				600000000000000000000002 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NearButFarPhone;
+			productName = NearButFarPhone;
+			productReference = E00000000000000000000002 /* NearButFarPhone.app */;
+			productType = "com.apple.product-type.application";
+		};
+		800000000000000000000003 /* NearButFarTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D00000000000000000000006 /* Build configuration list for PBXNativeTarget "NearButFarTests" */;
+			buildPhases = (
+				700000000000000000000003 /* Sources */,
+				C00000000000000000000003 /* Frameworks */,
+				600000000000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NearButFarTests;
+			productName = NearButFarTests;
+			productReference = E00000000000000000000003 /* NearButFarTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A00000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {
+					800000000000000000000001 = {
+						CreatedOnToolsVersion = 26.6;
+						ProvisioningStyle = Automatic;
+					};
+					800000000000000000000002 = {
+						CreatedOnToolsVersion = 26.6;
+						ProvisioningStyle = Automatic;
+					};
+					800000000000000000000003 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+				};
+			};
+			buildConfigurationList = D00000000000000000000001 /* Build configuration list for PBXProject "NearButFar" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 900000000000000000000001;
+			productRefGroup = 900000000000000000000007 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				800000000000000000000001 /* NearButFarMac */,
+				800000000000000000000002 /* NearButFarPhone */,
+				800000000000000000000003 /* NearButFarTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		600000000000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		600000000000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		600000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		700000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B00000000000000000000001 /* NearButFarMacApp.swift in Sources */,
+				B00000000000000000000002 /* MacPeripheral.swift in Sources */,
+				B00000000000000000000003 /* CSVLogger.swift in Sources */,
+				B00000000000000000000004 /* BLEProtocol.swift in Sources */,
+				B00000000000000000000005 /* PresenceTracker.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		700000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B00000000000000000000006 /* NearButFarPhoneApp.swift in Sources */,
+				B00000000000000000000007 /* PhoneCentral.swift in Sources */,
+				B00000000000000000000008 /* BLEProtocol.swift in Sources */,
+				B00000000000000000000012 /* PresenceTracker.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		700000000000000000000003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B00000000000000000000009 /* BLEProtocol.swift in Sources */,
+				B00000000000000000000010 /* PresenceTracker.swift in Sources */,
+				B00000000000000000000011 /* NearButFarTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		500000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		500000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		500000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/Mac/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nearbutfar.mac;
+				PRODUCT_NAME = NearButFarMac;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		500000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/Mac/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nearbutfar.mac;
+				PRODUCT_NAME = NearButFarMac;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		500000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = L4J95GK2UU;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/iOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nearbutfar.phone;
+				PRODUCT_NAME = NearButFarPhone;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		500000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = L4J95GK2UU;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/iOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nearbutfar.phone;
+				PRODUCT_NAME = NearButFarPhone;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		500000000000000000000007 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nearbutfar.tests;
+				PRODUCT_NAME = NearButFarTests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "";
+			};
+			name = Debug;
+		};
+		500000000000000000000008 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nearbutfar.tests;
+				PRODUCT_NAME = NearButFarTests;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D00000000000000000000001 /* Build configuration list for PBXProject "NearButFar" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				500000000000000000000001 /* Debug */,
+				500000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D00000000000000000000004 /* Build configuration list for PBXNativeTarget "NearButFarMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				500000000000000000000003 /* Debug */,
+				500000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D00000000000000000000005 /* Build configuration list for PBXNativeTarget "NearButFarPhone" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				500000000000000000000005 /* Debug */,
+				500000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D00000000000000000000006 /* Build configuration list for PBXNativeTarget "NearButFarTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				500000000000000000000007 /* Debug */,
+				500000000000000000000008 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A00000000000000000000001 /* Project object */;
+}
