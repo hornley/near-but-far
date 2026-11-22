@@ -1,7 +1,14 @@
 # Near But Far
 
 **Logo mark:** `nbt`
-**Status:** BLE feasibility prototype
+**Status:** BLE feasibility prototype; Issue #1 sampling is implemented on the current branch, and Issue #2 is blocked at the authenticated-session dependency gate.
+
+## Implementation status
+
+- The current branch schedules active Mac challenges about once per second while keeping the five-second Mac response/retry timing, ten-second iPhone fallback, `-70 dBm` test threshold, and 60-second test countdown.
+- Physical validation of this cadence and its timeout behavior remains pending. iOS may throttle or suspend background BLE work.
+- No compatible maintained protocol library was found for macOS 14 and iOS 17, so authenticated pairing and effective monitoring are not implemented. The BLE sampling exchange remains an unauthenticated prototype and must not be treated or shipped as protection.
+- Lock now and Unlock remain unavailable. The app neither requests nor confirms Mac lock state.
 
 ## Product goal
 
@@ -20,7 +27,7 @@ The production utility should use macOS's secure lock screen and leave authentic
 
 ## Production security gate
 
-The prototype's public BLE service is only a signal for logging and must not be treated as authentication. Before production can lock the Mac, the pairing flow must authenticate and pin the user's iPhone so another nearby BLE device cannot keep the Mac marked present.
+The prototype's public BLE service is only a signal for local sampling and must not be treated as authentication. The approved pairing design uses a one-time QR for enrollment and a pinned phone identity for reconnects, but no implementation has passed the dependency gate. Before production can use presence for protection, the pairing flow must authenticate and pin the user's iPhone so another nearby BLE device cannot keep the Mac marked present.
 
 ## BLE feasibility prototype
 

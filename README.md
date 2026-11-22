@@ -31,6 +31,12 @@ The user has chosen to continue to actual app design and implementation using th
 - [GitHub issue #2: Add Mac monitoring toggle and manual iPhone lock controls](https://github.com/hornley/near-but-far/issues/2)
 - [Local issue notes](docs/issues/001-one-second-ble-rssi-sampling.md)
 
+## Current implementation status
+
+Issue #1's one-second active sampling target is implemented on this branch. The Mac still uses its five-second missed-response and same-sequence retry timing; the iPhone still uses its ten-second no-challenge estimate. RSSI reads are serialized, and the `-70 dBm` threshold and 60-second test countdown are unchanged. Physical validation of the new cadence and timeout behavior remains pending.
+
+Issue #2 is blocked at the authenticated-session dependency gate. No compatible maintained protocol library was found for the macOS 14 and iOS 17 deployment targets. Pairing, a persistent monitoring preference, and effective monitoring are not implemented. The current BLE exchange remains an unauthenticated prototype and must not be used or shipped as Mac protection. Lock now and Unlock remain unavailable; the app does not lock or unlock the Mac.
+
 On 2026-11-23, all 12 macOS unit tests passed; the Mac target, iPhone simulator target, and signed iPhone target built successfully. The updated phone build was installed and launched on the paired iPhone. After restarting the Mac app, its challenge sequence reset to 1; the phone acknowledged sequences 1 and 2 at `-50` and `-49 dBm`. The phone now resets its remembered sequence on a new connection, so a Mac app restart does not leave it rejecting challenges as stale. This confirms the updated apps launch and exchange BLE messages at a strong signal. It does not verify the `-70 dBm` threshold or a 60-second physical walk-away trial. A simulator screenshot confirmed the layout; simulator Bluetooth is unsupported.
 
 Command-line checks:

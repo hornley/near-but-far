@@ -16,7 +16,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
     private var acknowledgementCharacteristic: CBCharacteristic?
     private var lastSequence: UInt32?
     private var presenceTimer: Timer?
-    private(set) var connectionGeneration: UInt64 = 0
+    private var connectionGeneration: UInt64 = 0
     private var rssiReadInFlight = false
     private var rssiReadGeneration: UInt64?
     private var pendingRSSISequence: UInt32?
@@ -170,11 +170,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
                 return
             }
         }
-        if let lastSequence {
-            if sequence > lastSequence { self.lastSequence = sequence }
-        } else {
-            lastSequence = sequence
-        }
+        lastSequence = sequence
         let now = ContinuousClock.now
         model.didReceiveChallenge(at: now)
         if (pendingRSSISequence == sequence && rssiReadGeneration == connectionGeneration)

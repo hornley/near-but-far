@@ -21,7 +21,7 @@ final class PhoneModel: ObservableObject {
     }
 
     private var presenceTracker = PresenceTracker()
-    private(set) var lastChallengeAt: ContinuousClock.Instant?
+    private var lastChallengeAt: ContinuousClock.Instant?
     private var lossReason: LossReason?
     private var bluetoothAvailable = true
 

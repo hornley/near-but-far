@@ -3,6 +3,17 @@ import Foundation
 enum ChallengeAction: Equatable {
     case sendNew(sequence: UInt32)
     case retry(sequence: UInt32)
+
+    var sequence: UInt32 {
+        switch self {
+        case let .sendNew(sequence), let .retry(sequence): sequence
+        }
+    }
+
+    var isRetry: Bool {
+        if case .retry = self { return true }
+        return false
+    }
 }
 
 struct ChallengeSchedule {
@@ -73,13 +84,5 @@ struct ChallengeSchedule {
 
     mutating func reset() {
         self = Self()
-    }
-}
-
-private extension ChallengeAction {
-    var sequence: UInt32 {
-        switch self {
-        case let .sendNew(sequence), let .retry(sequence): sequence
-        }
     }
 }

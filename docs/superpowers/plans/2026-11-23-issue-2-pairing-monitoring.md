@@ -27,9 +27,13 @@
 
 **Files:** No source changes until this gate passes.
 
-- [ ] Compare maintained Swift libraries for a published authenticated handshake and encryption protocol. Confirm macOS 14 and iOS 17 support, license, maintenance, and test vectors.
-- [ ] Record the selected library and its key/session APIs in the implementation change before writing the adapter.
-- [ ] If no library qualifies, stop this plan. Keep pairing incomplete, effective monitoring unavailable, and all operational BLE messages disabled; do not invent a protocol or preserve the public frames as a fallback.
+- [x] Compare maintained Swift libraries for a published authenticated handshake and encryption protocol. Confirm macOS 14 and iOS 17 support, license, maintenance, and test vectors.
+- [x] No candidate qualified, so no library or API was selected and no adapter source changes were made.
+- [x] Stop this plan. Keep pairing incomplete and effective monitoring unavailable; do not invent a protocol or treat the existing public BLE sampling prototype as an authenticated product path.
+
+**Gate result (2026-11-23): blocked.** `trancee/noise-protocol` supports the required OS versions and documents Noise XX, but its Swift package applies unsafe build flags, so it cannot be consumed as a normal SwiftPM dependency. `rweather/noise-c` has vectors and an MIT license but is a reference implementation without supported Apple packaging and would require a custom build integration. `1amageek/swift-libp2p` requires macOS 26/iOS 26. The other Swift candidates checked lacked release/maintenance evidence or required newer OS versions. No existing library met the approved platform and maintenance constraints. Sources: [trancee/noise-protocol](https://github.com/trancee/noise-protocol), [Apple SwiftPM unsafe flags](https://developer.apple.com/documentation/packagedescription/swiftsetting/unsafeflags%28_%3A_%3A%29), [Noise-C](https://github.com/rweather/noise-c), [swift-libp2p](https://github.com/1amageek/swift-libp2p).
+
+The separate Issue #1 sampling implementation remains an unauthenticated prototype for development and physical timing checks only. It must not be treated or shipped as effective presence monitoring until the authenticated-session gate passes.
 
 ### Task 2: Add the shared verified-message boundary
 

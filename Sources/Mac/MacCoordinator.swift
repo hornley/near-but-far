@@ -123,16 +123,3 @@ final class MacCoordinator: ObservableObject {
         }
     }
 }
-
-private extension ChallengeAction {
-    var sequence: UInt32 {
-        switch self {
-        case let .sendNew(sequence), let .retry(sequence): sequence
-        }
-    }
-
-    var isRetry: Bool {
-        if case .retry = self { return true }
-        return false
-    }
-}
