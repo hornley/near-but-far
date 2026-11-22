@@ -29,7 +29,7 @@
 
 **Files:** `Sources/Shared/ChallengeSchedule.swift`
 
-- [ ] Define the scheduler actions and fixed intervals:
+- [x] Define the scheduler actions and fixed intervals:
 
 ```swift
 enum ChallengeAction: Equatable {
@@ -49,49 +49,49 @@ struct ChallengeSchedule {
 }
 ```
 
-- [ ] Implement one outstanding logical sequence. Emit a new sequence only after the prior one is acknowledged and one second has elapsed. Emit a retry with the same sequence only after five seconds since its last successful queue.
-- [ ] Treat a failed `updateValue` queue attempt as pending. Do not start its response deadline or allocate a new sequence; resume that pending action from `peripheralManagerIsReady(toUpdateSubscribers:)`.
+- [x] Implement one outstanding logical sequence. Emit a new sequence only after the prior one is acknowledged and one second has elapsed. Emit a retry with the same sequence only after five seconds since its last successful queue.
+- [x] Treat a failed `updateValue` queue attempt as pending. Do not start its response deadline or allocate a new sequence; resume that pending action from `peripheralManagerIsReady(toUpdateSubscribers:)`.
 
 ### Task 2: Move presence deadlines to monotonic time
 
 **Files:** `Sources/Shared/PresenceTracker.swift`, `Sources/Mac/MacPeripheral.swift`, `Sources/iOS/PhoneCentral.swift`
 
-- [ ] Store loss-start instants from `ContinuousClock`; keep `-70 dBm` and 60 seconds unchanged.
-- [ ] Keep these rules in one tracker: a sample at or below `-70` starts the countdown once, a fresh stronger sample clears it, and missing RSSI or reconnecting alone does not.
-- [ ] When a fresh recovery sample and expiry have the same monotonic timestamp, apply the sample first.
-- [ ] Keep wall-clock `Date` only for CSV events and user-visible timestamps.
+- [x] Store loss-start instants from `ContinuousClock`; keep `-70 dBm` and 60 seconds unchanged.
+- [x] Keep these rules in one tracker: a sample at or below `-70` starts the countdown once, a fresh stronger sample clears it, and missing RSSI or reconnecting alone does not.
+- [x] When a fresh recovery sample and expiry have the same monotonic timestamp, apply the sample first.
+- [x] Keep wall-clock `Date` only for CSV events and user-visible timestamps.
 
 ### Task 3: Integrate the Mac transport with `MacCoordinator`
 
 **Files:** `Sources/Mac/MacCoordinator.swift`, `Sources/Mac/MacPeripheral.swift`, `Sources/Mac/NearButFarMacApp.swift`, `NearButFar.xcodeproj/project.pbxproj`
 
-- [ ] Make `MacCoordinator` the only owner of `ChallengeSchedule` and the Mac `PresenceTracker`. It receives typed transport events and exposes the existing status/countdown to the menu-bar view.
-- [ ] Keep `MacPeripheral` limited to CoreBluetooth state, subscriptions, writes, and queue readiness. It does not start countdowns or decide whether a sample means nearby.
-- [ ] Replace the five-second challenge timer with a one-second schedule tick in the coordinator. Keep a separate one-second display refresh only if required by the existing menu.
-- [ ] On a new queued action, ask the adapter to publish it and call `didQueue` only after CoreBluetooth accepts it. On a full queue, retain the action until CoreBluetooth is ready.
-- [ ] On the first five-second timeout, mark presence lost once. Continue retrying the same logical sequence every five seconds; do not change the one-second sample cadence into a one-second loss timeout.
-- [ ] On a valid acknowledgement, acknowledge the exact outstanding sequence, apply its fresh RSSI, and allow the next new challenge after the one-second interval.
-- [ ] Bind the existing Mac status to `MacCoordinator`; add the new Mac sources to the explicit Xcode target membership.
+- [x] Make `MacCoordinator` the only owner of `ChallengeSchedule` and the Mac `PresenceTracker`. It receives typed transport events and exposes the existing status/countdown to the menu-bar view.
+- [x] Keep `MacPeripheral` limited to CoreBluetooth state, subscriptions, writes, and queue readiness. It does not start countdowns or decide whether a sample means nearby.
+- [x] Replace the five-second challenge timer with a one-second schedule tick in the coordinator. Keep a separate one-second display refresh only if required by the existing menu.
+- [x] On a new queued action, ask the adapter to publish it and call `didQueue` only after CoreBluetooth accepts it. On a full queue, retain the action until CoreBluetooth is ready.
+- [x] On the first five-second timeout, mark presence lost once. Continue retrying the same logical sequence every five seconds; do not change the one-second sample cadence into a one-second loss timeout.
+- [x] On a valid acknowledgement, acknowledge the exact outstanding sequence, apply its fresh RSSI, and allow the next new challenge after the one-second interval.
+- [x] Bind the existing Mac status to `MacCoordinator`; add the new Mac sources to the explicit Xcode target membership.
 
 ### Task 4: Integrate the iPhone transport with `PhoneModel`
 
 **Files:** `Sources/iOS/PhoneModel.swift`, `Sources/iOS/PhoneCentral.swift`, `Sources/iOS/NearButFarPhoneApp.swift`, `NearButFar.xcodeproj/project.pbxproj`
 
-- [ ] Make `PhoneModel` the owner of the local `PresenceTracker`, last-challenge time, loss reason, and displayed presence state. `PhoneCentral` reports BLE and RSSI callback events only.
-- [ ] Keep at most one RSSI read in flight. A retry notification for the same sequence must not overwrite the pending sequence or start another read.
-- [ ] Send only the RSSI value returned for that challenge; never reuse a cached value as a fresh sample. Encode an unavailable or invalid sample as nil.
-- [ ] Preserve the ten-second no-challenge estimate. A reconnect or nil-RSSI acknowledgement alone does not cancel an active countdown.
-- [ ] Ignore stale callbacks from a previous peripheral connection generation.
-- [ ] Rebind the existing status view to `PhoneModel` without changing its selected layout; the full status-first UI/UX pass remains phase three.
+- [x] Make `PhoneModel` the owner of the local `PresenceTracker`, last-challenge time, loss reason, and displayed presence state. `PhoneCentral` reports BLE and RSSI callback events only.
+- [x] Keep at most one RSSI read in flight. A retry notification for the same sequence must not overwrite the pending sequence or start another read.
+- [x] Send only the RSSI value returned for that challenge; never reuse a cached value as a fresh sample. Encode an unavailable or invalid sample as nil.
+- [x] Preserve the ten-second no-challenge estimate. A reconnect or nil-RSSI acknowledgement alone does not cancel an active countdown.
+- [x] Ignore stale callbacks from a previous peripheral connection generation.
+- [x] Rebind the existing status view to `PhoneModel` without changing its selected layout; the full status-first UI/UX pass remains phase three.
 
 ### Task 5: Update issue documentation and build the targets
 
 **Files:** `docs/issues/001-one-second-ble-rssi-sampling.md`
 
-- [ ] Record the active one-second target and unchanged five-second and ten-second timeouts.
-- [ ] Document that iOS may throttle background sampling and keep the handoff’s physical checks marked pending until performed.
-- [ ] Build the Mac target with `xcodebuild build -project NearButFar.xcodeproj -scheme NearButFarMac -destination 'platform=macOS'`.
-- [ ] Build the phone simulator target with `xcodebuild build -project NearButFar.xcodeproj -scheme NearButFarPhone -destination 'platform=iOS Simulator,name=iPhone 15 Pro Max' CODE_SIGNING_ALLOWED=NO`.
+- [x] Record the active one-second target and unchanged five-second and ten-second timeouts.
+- [x] Document that iOS may throttle background sampling and keep the handoff’s physical checks marked pending until performed.
+- [x] Build the Mac target with `xcodebuild build -project NearButFar.xcodeproj -scheme NearButFarMac -destination 'platform=macOS'`.
+- [x] Build the phone simulator target with `xcodebuild build -project NearButFar.xcodeproj -scheme NearButFarPhone -destination 'platform=iOS Simulator,name=iPhone 15 Pro Max' CODE_SIGNING_ALLOWED=NO`.
 
 ## Manual validation
 
