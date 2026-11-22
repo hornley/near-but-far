@@ -1,6 +1,6 @@
 # Near But Far app design
 
-**Status:** Draft — awaiting user approval
+**Status:** Approved by user on 2026-11-23
 
 **Scope:** [Issue #1](https://github.com/hornley/near-but-far/issues/1), [Issue #2](https://github.com/hornley/near-but-far/issues/2), then the approved status-first UI/UX pass.
 
@@ -129,4 +129,4 @@ We accept that one-second sampling may increase battery and CPU use in exchange 
 3. Apply the status-first UI/UX pass and run the requested deslop cleanup.
 4. Update `README.md` and `spec.md` to distinguish implemented behavior from the prototype and keep physical checks and lock capability gates visible.
 
-The next step is a detailed implementation plan after approval of this spec.
+The implementation sequence is documented in the [issue #1 plan](../plans/2026-11-23-issue-1-rssi-sampling.md), [issue #2 plan](../plans/2026-11-23-issue-2-pairing-monitoring.md), and [status-first UI/UX plan](../plans/2026-11-23-status-first-ui-ux.md).
