@@ -20,6 +20,7 @@
 		B00000000000000000000011 /* NearButFarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000031 /* NearButFarTests.swift */; };
 		B00000000000000000000012 /* PresenceTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000002 /* PresenceTracker.swift */; };
 		B00000000000000000000013 /* ChallengeSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000003 /* ChallengeSchedule.swift */; };
+		B00000000000000000000014 /* MacCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000015 /* MacCoordinator.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +34,7 @@
 		F00000000000000000000012 /* MacPeripheral.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacPeripheral.swift; sourceTree = "<group>"; };
 		F00000000000000000000013 /* CSVLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVLogger.swift; sourceTree = "<group>"; };
 		F00000000000000000000014 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		F00000000000000000000015 /* MacCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacCoordinator.swift; sourceTree = "<group>"; };
 		F00000000000000000000021 /* NearButFarPhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearButFarPhoneApp.swift; sourceTree = "<group>"; };
 		F00000000000000000000022 /* PhoneCentral.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneCentral.swift; sourceTree = "<group>"; };
 		F00000000000000000000023 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -100,6 +102,7 @@
 				F00000000000000000000012 /* MacPeripheral.swift */,
 				F00000000000000000000013 /* CSVLogger.swift */,
 				F00000000000000000000014 /* Info.plist */,
+				F00000000000000000000015 /* MacCoordinator.swift */,
 			);
 			path = Mac;
 			sourceTree = "<group>";
@@ -263,6 +266,7 @@
 				B00000000000000000000004 /* BLEProtocol.swift in Sources */,
 				B00000000000000000000005 /* PresenceTracker.swift in Sources */,
 				B00000000000000000000013 /* ChallengeSchedule.swift in Sources */,
+				B00000000000000000000014 /* MacCoordinator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
