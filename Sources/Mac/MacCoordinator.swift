@@ -27,11 +27,16 @@ final class MacCoordinator: ObservableObject {
             bluetoothState = "Log unavailable: \(error.localizedDescription)"
         }
         peripheral.onEvent = { [weak self] event in self?.handle(event) }
-        challengeTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            self?.tick()
-        }
+        scheduleChallengeTick(after: 1)
         displayTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             self?.refreshDisplay()
+        }
+    }
+
+    private func scheduleChallengeTick(after interval: TimeInterval) {
+        challengeTimer?.invalidate()
+        challengeTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { [weak self] _ in
+            self?.tick()
         }
     }
 
@@ -53,6 +58,7 @@ final class MacCoordinator: ObservableObject {
             logger?.log(isSubscribed ? "subscribed" : "unsubscribed")
             if isSubscribed { tick() }
         case .readyToUpdate:
+            queueBlocked = false
             tick()
         case let .log(event, details):
             logger?.log(event, details: details)
@@ -62,12 +68,13 @@ final class MacCoordinator: ObservableObject {
     }
 
     private func tick() {
+        defer { scheduleChallengeTick(after: 1) }
         let now = ContinuousClock.now
         if schedule.responseTimedOut(at: now), tracker.isArmed, tracker.lossStartedAt == nil {
             tracker.missedChallenge(at: now)
             logger?.log("missed_response", sequence: outstandingSequence)
         }
-        guard isSubscribed, let action = schedule.nextAction(at: now) else {
+        guard isSubscribed, !queueBlocked, let action = schedule.nextAction(at: now) else {
             refreshDisplay()
             return
         }
@@ -103,8 +110,9 @@ final class MacCoordinator: ObservableObject {
         logger?.log("acknowledgement", sequence: acknowledgement.sequence, rssi: acknowledgement.rssi,
                     details: acknowledgement.rssi == nil ? "rssi_unavailable" : "")
         outstandingSequence = nil
+        queueBlocked = false
         refreshDisplay(at: now)
-        tick()
+        scheduleChallengeTick(after: 1)
         return true
     }
 
