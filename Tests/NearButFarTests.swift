@@ -19,48 +19,48 @@ final class NearButFarTests: XCTestCase {
 
     func testPresenceTimerStartsOnlyAfterFirstAcknowledgement() {
         var tracker = PresenceTracker()
-        let now = Date(timeIntervalSince1970: 100)
+        let now = ContinuousClock.now
         tracker.missedChallenge(at: now)
         XCTAssertNil(tracker.secondsRemaining(at: now))
-        XCTAssertFalse(tracker.takeWouldLock(at: now.addingTimeInterval(120)))
+        XCTAssertFalse(tracker.takeWouldLock(at: now.advanced(by: .milliseconds(120000))))
     }
 
     func testPresenceTimerBoundaryAndOneShot() {
         var tracker = PresenceTracker()
-        let now = Date(timeIntervalSince1970: 100)
+        let now = ContinuousClock.now
         tracker.acknowledge(at: now)
-        tracker.missedChallenge(at: now.addingTimeInterval(5))
-        XCTAssertFalse(tracker.takeWouldLock(at: now.addingTimeInterval(64.999)))
-        XCTAssertTrue(tracker.takeWouldLock(at: now.addingTimeInterval(65)))
-        XCTAssertFalse(tracker.takeWouldLock(at: now.addingTimeInterval(70)))
+        tracker.missedChallenge(at: now.advanced(by: .milliseconds(5000)))
+        XCTAssertFalse(tracker.takeWouldLock(at: now.advanced(by: .milliseconds(64999))))
+        XCTAssertTrue(tracker.takeWouldLock(at: now.advanced(by: .milliseconds(65000))))
+        XCTAssertFalse(tracker.takeWouldLock(at: now.advanced(by: .milliseconds(70000))))
     }
 
     func testAcknowledgementCancelsGracePeriod() {
         var tracker = PresenceTracker()
-        let now = Date(timeIntervalSince1970: 100)
+        let now = ContinuousClock.now
         tracker.acknowledge(at: now)
-        tracker.missedChallenge(at: now.addingTimeInterval(5))
-        tracker.acknowledge(at: now.addingTimeInterval(20))
-        XCTAssertNil(tracker.secondsRemaining(at: now.addingTimeInterval(20)))
-        XCTAssertFalse(tracker.takeWouldLock(at: now.addingTimeInterval(100)))
+        tracker.missedChallenge(at: now.advanced(by: .milliseconds(5000)))
+        tracker.acknowledge(at: now.advanced(by: .milliseconds(20000)))
+        XCTAssertNil(tracker.secondsRemaining(at: now.advanced(by: .milliseconds(20000))))
+        XCTAssertFalse(tracker.takeWouldLock(at: now.advanced(by: .milliseconds(100000))))
     }
 
     func testLaterMissStartsANewGracePeriodAfterRecovery() {
         var tracker = PresenceTracker()
-        let now = Date(timeIntervalSince1970: 100)
+        let now = ContinuousClock.now
         tracker.acknowledge(at: now)
-        tracker.missedChallenge(at: now.addingTimeInterval(5))
-        XCTAssertTrue(tracker.takeWouldLock(at: now.addingTimeInterval(65)))
+        tracker.missedChallenge(at: now.advanced(by: .milliseconds(5000)))
+        XCTAssertTrue(tracker.takeWouldLock(at: now.advanced(by: .milliseconds(65000))))
 
-        tracker.acknowledge(at: now.addingTimeInterval(70))
-        tracker.missedChallenge(at: now.addingTimeInterval(75))
-        XCTAssertFalse(tracker.takeWouldLock(at: now.addingTimeInterval(134.999)))
-        XCTAssertTrue(tracker.takeWouldLock(at: now.addingTimeInterval(135)))
+        tracker.acknowledge(at: now.advanced(by: .milliseconds(70000)))
+        tracker.missedChallenge(at: now.advanced(by: .milliseconds(75000)))
+        XCTAssertFalse(tracker.takeWouldLock(at: now.advanced(by: .milliseconds(134999))))
+        XCTAssertTrue(tracker.takeWouldLock(at: now.advanced(by: .milliseconds(135000))))
     }
 
     func testWeakRSSIAtThresholdStartsSixtySecondCountdown() {
         var tracker = PresenceTracker()
-        let now = Date(timeIntervalSince1970: 100)
+        let now = ContinuousClock.now
 
         tracker.observeRSSI(-70, at: now)
 
@@ -70,41 +70,41 @@ final class NearButFarTests: XCTestCase {
 
     func testStrongerRSSICancelsWeakSignalCountdown() {
         var tracker = PresenceTracker()
-        let now = Date(timeIntervalSince1970: 100)
+        let now = ContinuousClock.now
         tracker.observeRSSI(-72, at: now)
 
-        tracker.observeRSSI(-69, at: now.addingTimeInterval(10))
+        tracker.observeRSSI(-69, at: now.advanced(by: .milliseconds(10000)))
 
-        XCTAssertNil(tracker.secondsRemaining(at: now.addingTimeInterval(10)))
+        XCTAssertNil(tracker.secondsRemaining(at: now.advanced(by: .milliseconds(10000))))
     }
 
     func testRepeatedWeakRSSIDoesNotRestartCountdown() {
         var tracker = PresenceTracker()
-        let now = Date(timeIntervalSince1970: 100)
+        let now = ContinuousClock.now
         tracker.observeRSSI(-70, at: now)
 
-        tracker.observeRSSI(-75, at: now.addingTimeInterval(10))
+        tracker.observeRSSI(-75, at: now.advanced(by: .milliseconds(10000)))
 
-        XCTAssertEqual(tracker.secondsRemaining(at: now.addingTimeInterval(10)), 50)
+        XCTAssertEqual(tracker.secondsRemaining(at: now.advanced(by: .milliseconds(10000))), 50)
     }
 
     func testMissingRSSIDoesNotClearWeakSignalCountdown() {
         var tracker = PresenceTracker()
-        let now = Date(timeIntervalSince1970: 100)
+        let now = ContinuousClock.now
         tracker.observeRSSI(-70, at: now)
 
-        tracker.observeRSSI(nil, at: now.addingTimeInterval(10))
+        tracker.observeRSSI(nil, at: now.advanced(by: .milliseconds(10000)))
 
-        XCTAssertEqual(tracker.secondsRemaining(at: now.addingTimeInterval(10)), 50)
+        XCTAssertEqual(tracker.secondsRemaining(at: now.advanced(by: .milliseconds(10000))), 50)
     }
 
     func testWeakRSSIReportsWouldLockOnceAfterSixtySeconds() {
         var tracker = PresenceTracker()
-        let now = Date(timeIntervalSince1970: 100)
+        let now = ContinuousClock.now
         tracker.observeRSSI(-70, at: now)
 
-        XCTAssertFalse(tracker.takeWouldLock(at: now.addingTimeInterval(59.999)))
-        XCTAssertTrue(tracker.takeWouldLock(at: now.addingTimeInterval(60)))
-        XCTAssertFalse(tracker.takeWouldLock(at: now.addingTimeInterval(61)))
+        XCTAssertFalse(tracker.takeWouldLock(at: now.advanced(by: .milliseconds(59999))))
+        XCTAssertTrue(tracker.takeWouldLock(at: now.advanced(by: .milliseconds(60000))))
+        XCTAssertFalse(tracker.takeWouldLock(at: now.advanced(by: .milliseconds(61000))))
     }
 }

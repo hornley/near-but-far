@@ -17,8 +17,8 @@ final class MacPeripheral: NSObject, ObservableObject {
     private var tracker = PresenceTracker()
     private var nextSequence: UInt32 = 1
     private var outstandingSequence: UInt32?
-    private var queuedAt: Date?
-    private var lastQueuedAt: Date?
+    private var queuedAt: ContinuousClock.Instant?
+    private var lastQueuedAt: ContinuousClock.Instant?
     private var retrySequence: UInt32?
     private var challengeTimer: Timer?
     private var presenceTimer: Timer?
@@ -87,12 +87,12 @@ final class MacPeripheral: NSObject, ObservableObject {
     private func challengeInterval() {
         guard manager.state == .poweredOn else { return }
         if let sequence = outstandingSequence {
-            let now = Date()
-            if let queuedAt, now.timeIntervalSince(queuedAt) >= 5, tracker.isArmed, tracker.lossStartedAt == nil {
+            let now = ContinuousClock.now
+            if let queuedAt, queuedAt.duration(to: now) >= .seconds(5), tracker.isArmed, tracker.lossStartedAt == nil {
                 tracker.missedChallenge(at: now)
                 logger?.log("missed_response", sequence: sequence)
             }
-            if retrySequence == nil, let lastQueuedAt, now.timeIntervalSince(lastQueuedAt) >= 5 {
+            if retrySequence == nil, let lastQueuedAt, lastQueuedAt.duration(to: now) >= .seconds(5) {
                 publish(sequence)
             }
             return
@@ -107,7 +107,7 @@ final class MacPeripheral: NSObject, ObservableObject {
     private func publish(_ sequence: UInt32) {
         guard let characteristic = challengeCharacteristic, isSubscribed else { return }
         if manager.updateValue(BLEProtocol.encodeChallenge(sequence), for: characteristic, onSubscribedCentrals: nil) {
-            let now = Date()
+            let now = ContinuousClock.now
             if queuedAt == nil { queuedAt = now }
             let isRetry = lastQueuedAt != nil
             lastQueuedAt = now
@@ -120,10 +120,10 @@ final class MacPeripheral: NSObject, ObservableObject {
     }
 
     private func updatePresence() {
-        let now = Date()
+        let now = ContinuousClock.now
         countdown = tracker.secondsRemaining(at: now)
         if tracker.takeWouldLock(at: now), let started = tracker.lossStartedAt {
-            logger?.log("would_lock", sequence: outstandingSequence, details: "elapsed_seconds=\(Int(now.timeIntervalSince(started)))")
+            logger?.log("would_lock", sequence: outstandingSequence, details: "elapsed_seconds=\(started.duration(to: now).components.seconds)")
         }
     }
 
@@ -193,7 +193,7 @@ extension MacPeripheral: CBPeripheralManagerDelegate {
                 continue
             }
             lastRSSI = acknowledgement.rssi
-            let now = Date()
+            let now = ContinuousClock.now
             let wasCountingDown = tracker.lossStartedAt != nil
             tracker.observeRSSI(acknowledgement.rssi, at: now)
             if !wasCountingDown, tracker.lossStartedAt != nil, let rssi = acknowledgement.rssi {

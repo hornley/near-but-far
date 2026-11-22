@@ -33,7 +33,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
     private var lastSequence: UInt32?
     private var pendingRSSISequence: UInt32?
     private var presenceTracker = PresenceTracker()
-    private var lastChallengeAt: Date?
+    private var lastChallengeAt: ContinuousClock.Instant?
     private var presenceTimer: Timer?
     private var presenceLossReason: PresenceLossReason?
 
@@ -119,7 +119,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         connectionState = "Disconnected; scanning again"
         challengeCharacteristic = nil
         acknowledgementCharacteristic = nil
-        startEstimatedLoss(at: Date())
+        startEstimatedLoss(at: ContinuousClock.now)
         refreshPresence()
         scanAgainAfterDelay()
     }
@@ -153,7 +153,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         if error == nil, characteristic.isNotifying {
             connectionState = "Connected to Mac"
             record("subscribed_to_challenges")
-            let now = Date()
+            let now = ContinuousClock.now
             lastChallengeAt = now
             if !presenceTracker.isArmed {
                 presenceTracker.acknowledge(at: now)
@@ -178,7 +178,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         }
         lastSequence = sequence
         pendingRSSISequence = sequence
-        lastChallengeAt = Date()
+        lastChallengeAt = ContinuousClock.now
         peripheral.readRSSI()
     }
 
@@ -188,7 +188,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
               let peripheral = self.peripheral else { return }
         let rssi = error == nil ? Int16(clamping: RSSI.intValue) : nil
         lastRSSI = rssi.map(Int.init)
-        let now = Date()
+        let now = ContinuousClock.now
         let wasCountingDown = presenceTracker.lossStartedAt != nil
         presenceTracker.observeRSSI(rssi, at: now)
         if let rssi {
@@ -222,7 +222,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         }
     }
 
-    private func startEstimatedLoss(at time: Date) {
+    private func startEstimatedLoss(at time: ContinuousClock.Instant) {
         guard presenceTracker.isArmed else { return }
         let wasCountingDown = presenceTracker.lossStartedAt != nil
         presenceTracker.missedChallenge(at: time)
@@ -234,7 +234,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         }
     }
 
-    private func refreshPresence(at now: Date = Date()) {
+    private func refreshPresence(at now: ContinuousClock.Instant = ContinuousClock.now) {
         guard central.state == .poweredOn else {
             presenceState = .unavailable
             return
@@ -243,8 +243,8 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         if let lastChallengeAt,
            presenceTracker.isArmed,
            presenceTracker.lossStartedAt == nil,
-           now.timeIntervalSince(lastChallengeAt) >= 10 {
-            startEstimatedLoss(at: lastChallengeAt.addingTimeInterval(10))
+           lastChallengeAt.duration(to: now) >= .seconds(10) {
+            startEstimatedLoss(at: lastChallengeAt.advanced(by: .seconds(10)))
         }
 
         if presenceTracker.takeWouldLock(at: now) {
