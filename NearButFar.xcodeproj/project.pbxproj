@@ -19,6 +19,7 @@
 		B00000000000000000000010 /* PresenceTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000002 /* PresenceTracker.swift */; };
 		B00000000000000000000011 /* NearButFarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000031 /* NearButFarTests.swift */; };
 		B00000000000000000000012 /* PresenceTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000002 /* PresenceTracker.swift */; };
+		B00000000000000000000013 /* ChallengeSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000003 /* ChallengeSchedule.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +28,7 @@
 		E00000000000000000000003 /* NearButFarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NearButFarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F00000000000000000000001 /* BLEProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEProtocol.swift; sourceTree = "<group>"; };
 		F00000000000000000000002 /* PresenceTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresenceTracker.swift; sourceTree = "<group>"; };
+		F00000000000000000000003 /* ChallengeSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeSchedule.swift; sourceTree = "<group>"; };
 		F00000000000000000000011 /* NearButFarMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearButFarMacApp.swift; sourceTree = "<group>"; };
 		F00000000000000000000012 /* MacPeripheral.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacPeripheral.swift; sourceTree = "<group>"; };
 		F00000000000000000000013 /* CSVLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVLogger.swift; sourceTree = "<group>"; };
@@ -86,6 +88,7 @@
 			children = (
 				F00000000000000000000001 /* BLEProtocol.swift */,
 				F00000000000000000000002 /* PresenceTracker.swift */,
+				F00000000000000000000003 /* ChallengeSchedule.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -259,6 +262,7 @@
 				B00000000000000000000003 /* CSVLogger.swift in Sources */,
 				B00000000000000000000004 /* BLEProtocol.swift in Sources */,
 				B00000000000000000000005 /* PresenceTracker.swift in Sources */,
+				B00000000000000000000013 /* ChallengeSchedule.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
