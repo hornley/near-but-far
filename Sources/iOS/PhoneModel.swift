@@ -31,6 +31,7 @@ final class PhoneModel: ObservableObject {
     }
 
     func didSubscribe(at now: ContinuousClock.Instant) {
+        lastChallengeAt = now
         if !presenceTracker.isArmed {
             presenceTracker.acknowledge(at: now)
         }
@@ -43,9 +44,8 @@ final class PhoneModel: ObservableObject {
     }
 
     func didDisconnect(at now: ContinuousClock.Instant) {
-        let wasCountingDown = presenceTracker.lossStartedAt != nil
         presenceTracker.missedChallenge(at: now)
-        if !wasCountingDown, presenceTracker.lossStartedAt != nil {
+        if presenceTracker.lossStartedAt != nil {
             lossReason = .connectionLost
         }
         refreshPresence(at: now)

@@ -20,6 +20,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
     private var rssiReadInFlight = false
     private var rssiReadGeneration: UInt64?
     private var pendingRSSISequence: UInt32?
+    private var deferredRSSIChallenge: (sequence: UInt32, generation: UInt64)?
     let model: PhoneModel
 
     init(model: PhoneModel? = nil) {
@@ -92,7 +93,6 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         record("connected")
         connectionState = "Discovering service"
         lastSequence = nil // The Mac restarts its challenge counter when its app restarts.
-        pendingRSSISequence = nil
         challengeCharacteristic = nil
         acknowledgementCharacteristic = nil
         peripheral.delegate = self
@@ -165,23 +165,25 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
               acknowledgementCharacteristic != nil else { return }
 
         if let lastSequence {
-            if sequence == lastSequence {
-                record("duplicate_challenge_\(sequence)")
-                model.didReceiveChallenge(at: ContinuousClock.now)
-                return
-            }
             if sequence < lastSequence {
                 record("stale_challenge_\(sequence)")
                 return
             }
         }
-        lastSequence = sequence
+        if let lastSequence {
+            if sequence > lastSequence { self.lastSequence = sequence }
+        } else {
+            lastSequence = sequence
+        }
         let now = ContinuousClock.now
         model.didReceiveChallenge(at: now)
+        if (pendingRSSISequence == sequence && rssiReadGeneration == connectionGeneration)
+            || (deferredRSSIChallenge?.sequence == sequence && deferredRSSIChallenge?.generation == connectionGeneration) {
+            record("duplicate_challenge_\(sequence)")
+            return
+        }
         guard !rssiReadInFlight else {
-            if pendingRSSISequence == sequence {
-                record("duplicate_challenge_\(sequence)")
-            }
+            deferredRSSIChallenge = (sequence, connectionGeneration)
             return
         }
         pendingRSSISequence = sequence
@@ -193,11 +195,13 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         rssiReadInFlight = false
         let callbackGeneration = rssiReadGeneration
         rssiReadGeneration = nil
+        let sequence = pendingRSSISequence
+        pendingRSSISequence = nil
         guard peripheral === self.peripheral,
               callbackGeneration == connectionGeneration,
-              let sequence = pendingRSSISequence,
+              let sequence,
               let acknowledgementCharacteristic else {
-            pendingRSSISequence = nil
+            startDeferredRSSIRead()
             return
         }
 
@@ -210,8 +214,8 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
             for: acknowledgementCharacteristic,
             type: .withResponse
         )
-        pendingRSSISequence = nil
         record(rssi.map { "rssi_\($0)_ack_\(sequence)" } ?? "rssi_unavailable_ack_\(sequence)")
+        startDeferredRSSIRead()
     }
 
     private func startRSSIRead(on peripheral: CBPeripheral) {
@@ -219,6 +223,22 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         rssiReadInFlight = true
         rssiReadGeneration = connectionGeneration
         peripheral.readRSSI()
+    }
+
+    private func startDeferredRSSIRead() {
+        guard !rssiReadInFlight,
+              let deferred = deferredRSSIChallenge,
+              deferred.generation == connectionGeneration,
+              let peripheral,
+              acknowledgementCharacteristic != nil else {
+            if deferredRSSIChallenge?.generation != connectionGeneration {
+                deferredRSSIChallenge = nil
+            }
+            return
+        }
+        deferredRSSIChallenge = nil
+        pendingRSSISequence = deferred.sequence
+        startRSSIRead(on: peripheral)
     }
 
     func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
