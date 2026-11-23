@@ -33,6 +33,8 @@
 
 **Gate result (2026-11-23): blocked.** `trancee/noise-protocol` supports the required OS versions and documents Noise XX, but its Swift package applies unsafe build flags, so it cannot be consumed as a normal SwiftPM dependency. `rweather/noise-c` has vectors and an MIT license but is a reference implementation without supported Apple packaging and would require a custom build integration. `1amageek/swift-libp2p` requires macOS 26/iOS 26. The other Swift candidates checked lacked release/maintenance evidence or required newer OS versions. No existing library met the approved platform and maintenance constraints. Sources: [trancee/noise-protocol](https://github.com/trancee/noise-protocol), [Apple SwiftPM unsafe flags](https://developer.apple.com/documentation/packagedescription/swiftsetting/unsafeflags%28_%3A_%3A%29), [Noise-C](https://github.com/rweather/noise-c), [swift-libp2p](https://github.com/1amageek/swift-libp2p).
 
+**User decision (2026-11-23):** Keep the macOS 14 and iOS 17 minimum targets. Wait for a qualifying maintained library; do not raise the deployment targets or vendor the current candidates to bypass this gate. Reopen this plan when a candidate passes the platform, maintenance, license, and test-vector review.
+
 The separate Issue #1 sampling implementation remains an unauthenticated prototype for development and physical timing checks only. It must not be treated or shipped as effective presence monitoring until the authenticated-session gate passes.
 
 ### Task 2: Add the shared verified-message boundary
