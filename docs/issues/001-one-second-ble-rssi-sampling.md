@@ -29,3 +29,5 @@ The transport permits one RSSI read at a time. Each acknowledgement uses the RSS
 ## Notes
 
 One-second sampling is near-live feedback, not true real-time BLE. RSSI can fluctuate around the threshold; record that behavior during trials before deciding whether the test should add filtering or hysteresis.
+
+The current app carries samples through the authenticated, pinned BLE session. Earlier CSV data came from the unauthenticated feasibility prototype and is historical evidence only. Neither the prototype nor the current app locks the Mac.

@@ -1,0 +1,16 @@
+[package]
+name = "near-but-far-session"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+[lib]
+name = "near_but_far_session"
+crate-type = ["staticlib"]
+
+[dependencies]
+snow = "=0.10.0"
+x25519-dalek = { version = "=2.0.1", features = ["static_secrets"] }
+
+[build-dependencies]
+cbindgen = "=0.27.0"

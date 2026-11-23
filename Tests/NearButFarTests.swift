@@ -98,6 +98,24 @@ final class NearButFarTests: XCTestCase {
         XCTAssertEqual(tracker.secondsRemaining(at: now.advanced(by: .milliseconds(10000))), 50)
     }
 
+    func testClearingMonitoringEpochKeepsChallengeIDsMonotonic() throws {
+        var schedule = ChallengeSchedule()
+        let now = ContinuousClock.now
+        let first = try XCTUnwrap(schedule.nextAction(at: now))
+        XCTAssertEqual(first, .sendNew(sequence: 1))
+        schedule.didQueue(first, at: now)
+
+        schedule.clearPendingChallenge()
+
+        let second = try XCTUnwrap(schedule.nextAction(at: now.advanced(by: .seconds(1))))
+        XCTAssertEqual(second, .sendNew(sequence: 2))
+        schedule.didQueue(second, at: now.advanced(by: .seconds(1)))
+        schedule.acknowledge(1, at: now.advanced(by: .seconds(2)))
+
+        XCTAssertNil(schedule.nextAction(at: now.advanced(by: .seconds(3))))
+        XCTAssertTrue(schedule.responseTimedOut(at: now.advanced(by: .seconds(6))))
+    }
+
     func testWeakRSSIReportsWouldLockOnceAfterSixtySeconds() {
         var tracker = PresenceTracker()
         let now = ContinuousClock.now

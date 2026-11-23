@@ -1,13 +1,13 @@
 # Near But Far
 
 **Logo mark:** `nbt`
-**Status:** BLE feasibility prototype; Issue #1 sampling is implemented on the current branch, and Issue #2 is blocked at the authenticated-session dependency gate.
+**Status:** The current branch implements one-use QR pairing, authenticated BLE presence, persistent monitoring preference, and the approved status-first UI. Issue #1's one-second active sampling is implemented; physical validation remains pending. Issue #2 remains open because verified Mac lock and unlock actions are unavailable.
 
 ## Implementation status
 
 - The current branch schedules active Mac challenges about once per second while keeping the five-second Mac response/retry timing, ten-second iPhone fallback, `-70 dBm` test threshold, and 60-second test countdown.
 - Physical validation of this cadence and its timeout behavior remains pending. iOS may throttle or suspend background BLE work.
-- No compatible maintained protocol library was found for macOS 14 and iOS 17, so authenticated pairing and effective monitoring are not implemented. The BLE sampling exchange remains an unauthenticated prototype and must not be treated or shipped as protection.
+- Snow 0.10.0 passed the reviewed Rust-to-Swift C ABI gate and is used by the pairing and authenticated BLE session path on macOS 14 and iOS 17 targets. Its tag contains eight remediations validated by Trail of Bits; it does not mean the exact release received a full audit, and two informational findings were not among those validated fixes. Physical QR pairing, background reliability, and range behavior still need device validation.
 - Lock now and Unlock remain unavailable. The app neither requests nor confirms Mac lock state.
 
 ## Product goal
@@ -27,7 +27,7 @@ The production utility should use macOS's secure lock screen and leave authentic
 
 ## Production security gate
 
-The prototype's public BLE service is only a signal for local sampling and must not be treated as authentication. The approved pairing design uses a one-time QR for enrollment and a pinned phone identity for reconnects, but no implementation has passed the dependency gate. Before production can use presence for protection, the pairing flow must authenticate and pin the user's iPhone so another nearby BLE device cannot keep the Mac marked present.
+The approved one-time QR enrollment, pinned identity, and authenticated BLE session path are implemented on this branch. Physical pairing and monitoring checks remain open. Keep the app's presence status informational: no supported macOS lock request and trustworthy lock-state confirmation have been established, so Lock now and Unlock remain disabled and no lock message is sent.
 
 ## BLE feasibility prototype
 

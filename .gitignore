@@ -2,3 +2,6 @@
 **/xcuserdata/
 DerivedData/
 *.xcuserstate
+/build/
+Rust/NearButFarSession/target/
+Rust/NearButFarSession/build/

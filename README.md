@@ -1,73 +1,38 @@
-# Near But Far BLE Prototype
+# Near But Far
 
-This local prototype checks whether an iPhone can acknowledge a Mac's BLE challenges while nearby and whether missed acknowledgements can drive a 60-second presence timer. It only logs **“would lock”**; it never locks the Mac or keeps it awake.
+Near But Far is a local macOS menu-bar app and iPhone companion. The current branch implements one-use QR pairing, authenticated BLE presence, and a status-first interface. It does **not** lock or unlock the Mac; the app cannot yet confirm the Mac's secure lock state.
+
+## Current behavior
+
+- The Mac displays a one-use QR pairing offer that expires after two minutes. The Mac user approves the phone locally before its identity is saved.
+- Each device keeps its long-lived identity in device-only Keychain storage. Reconnection uses authenticated, encrypted BLE messages; the QR secret is erased after pairing, cancellation, or expiry.
+- The Mac has a persistent presence-monitoring preference. Enabling it, relaunching the app, or recovering from Bluetooth loss waits for fresh authenticated presence. Session and countdown state are not restored from disk.
+- The Mac owns a persisted signal threshold, defaulting to `-70 dBm` and adjustable from `-90` to `-50 dBm`. It sends the threshold over the authenticated session; the iPhone stores the last authenticated value and displays it read-only. RSSI is not distance.
+- The iPhone keeps its local presence estimate separate from Mac monitoring readiness and the Mac lock-state observation. It labels the threshold as current only after receiving it in the secure session, otherwise showing the last synced or waiting state.
+- Recent activity is available from the iPhone menu and shows events stored locally on the phone.
+- Lock now and Unlock stay disabled. Presence monitoring is informational and does not protect or lock the Mac.
+- The app targets macOS 14 and iOS 17. Snow 0.10.0 is linked through a reviewed Rust C ABI integration spike. Trail of Bits validated eight remediations included in the tag; the exact release was not fully audited, and two informational findings were not among those fixes.
 
 ## Build and run
 
-1. Open `NearButFar.xcodeproj` in Xcode.
-2. Run the `NearButFarMac` scheme on the Mac. Its menu-bar item shows Bluetooth state and the last RSSI sample.
-3. Run `NearButFarPhone` on an iPhone. For a physical device, select your signing team in Xcode. Approve Bluetooth access and leave the app open until it connects to the Mac.
-4. The Mac CSV log is at `~/Library/Application Support/NearButFar/ble-log.csv`. The iPhone app displays its most recent 200 local BLE events.
+1. Run `Rust/NearButFarSession/build-xcframework.sh` from the repository root. The first run needs network access to install the Rust targets and Cargo dependencies.
+2. Open `NearButFar.xcodeproj` in Xcode and run `NearButFarMac` on the Mac.
+3. Run `NearButFarPhone` on an iPhone. Choose a signing team and grant Bluetooth and camera access when asked.
+4. Open **Settings** from the Mac menu bar panel and select **Pair iPhone**. Scan the one-use QR in the iPhone app, then approve the pairing request on the Mac.
+5. Turn on presence monitoring in the Mac menu. The app reports only authenticated presence; Lock now and Unlock remain unavailable.
 
-The iPhone simulator can check compilation and the status screen, but it cannot validate BLE radio range or iOS background behavior.
+The simulator can check compilation and the status screen, but it cannot validate BLE range, QR pairing across devices, or iOS background behavior. The Mac's local CSV log is at `~/Library/Application Support/NearButFar/ble-log.csv`; the phone keeps a local BLE event log.
 
-## Current validation status
+## Validation status
 
-The Mac app was built and run locally, and the iPhone app was signed with the saved Personal Team, installed, and launched on the paired iPhone (`roasted ginger`). The iPhone showed **Connected to Mac** with RSSI `-48 dBm`. From `2026-11-22T16:44:10Z` through `2026-11-22T16:46:53Z`, the Mac log recorded a subscription and acknowledgements for challenge sequences 1–33, with RSSI samples from `-47` to `-51 dBm`. During setup the app briefly continued acknowledging while the iPhone was on its Home Screen, but this was not a controlled or long-duration background test.
+- The monitoring-epoch regression check passes: challenge IDs continue increasing, so an old delayed acknowledgement cannot count as fresh presence after monitoring resumes.
+- Rust tests and the Xcode test scheme pass; the Mac and iPhone simulator targets build. The signed iPhone app was installed and launched on `roasted ginger`.
+- The status-first unavailable screen was visually reviewed in the simulator. Physical QR enrollment, pairing recovery, monitoring behavior, and one-second cadence still need a device walkthrough before relying on background presence.
+- The user-reported overnight locked-phone run remains uninstrumented; exact duration and missed-response telemetry were not recorded. Ten varied-orientation range trials, Bluetooth-unavailable checks, and the exact 60-second boundary ordering also remain pending.
+- Issue #2 remains open while the supported macOS lock request and trustworthy lock-state confirmation are unresolved.
 
-In the latest user-reported physical trials, RSSI ranged from about `-40` to `-55 dBm`, varying with distance and obstruction. BLE continued working while the phone app was in the background. The user reports that the `-70 dBm` countdown, return-to-Nearby behavior, 60-second phone status, and iPhone Bluetooth off/on recovery worked. The Mac menu-bar state returned from **Waiting for iPhone** to **iPhone subscribed** after Bluetooth came back on. The user now reports leaving the app on overnight with the iPhone locked and considers the 30-minute background check complete. Exact elapsed time and connection telemetry were not captured, so this is a user-reported result, not a measured pass. RSSI is relative signal strength, not distance.
+See [the approved design](docs/superpowers/specs/2026-11-23-near-but-far-app-design.md), [Issue #1 notes](docs/issues/001-one-second-ble-rssi-sampling.md), [Issue #2 plan](docs/superpowers/plans/2026-11-23-issue-2-pairing-monitoring.md), and [status-first UI plan](docs/superpowers/plans/2026-11-23-status-first-ui-ux.md).
 
-At the latest CSV snapshot (`2026-11-22T19:24:07Z`, challenge sequence 764), there are 1,834 acknowledgements with RSSI from `-84` to `-28 dBm`, three `missed_response` events each followed by an acknowledgement within 11 seconds, nine `weak_signal` events, ten `signal_recovered` events, and three `would_lock` events. The three `would_lock` rows report `elapsed_seconds=60`, at `19:12:03Z`, `19:15:03Z`, and `19:19:43Z`. Each followed a weak sample at or below `-70 dBm` that persisted through expiry. Their displayed timestamps are 61 seconds after the corresponding weak-signal rows, while the event detail says 60 seconds. The log also records recovery from `-76 dBm` to `-47 dBm` in 15 seconds (sequences 153 and 156). A later `-70 dBm` sample at `19:20:17Z` recovered to `-67 dBm` at `19:21:17Z` with no `would_lock` row; because CSV timestamps have one-second precision, the event ordering at exactly 60 seconds remains unclear. These are log-only events; the prototype never locks the Mac. The out-of-range-before-weak-sample fallback, Mac Bluetooth-off behavior, and ten varied-orientation trials remain untested. The overnight locked-phone run is user-reported, but not present in this CSV.
+## Prototype evidence
 
-The phone status experiment uses a raw `-70 dBm` threshold and a 60-second local estimate. The iPhone shows **Nearby**, **Weak signal**, **Signal lost**, **Would lock**, or **Unavailable**, and always says that the actual Mac lock state is unavailable. A stronger sample clears the countdown; reconnecting alone or an acknowledgement with no RSSI does not. The Mac keeps its own timer and CSV log. Neither app locks the Mac.
-
-## Handoff to actual app work
-
-The user has chosen to continue to actual app design and implementation using the prototype results. The user reports an overnight background run with the iPhone locked and considers the 30-minute check complete, but exact duration and telemetry were not recorded. Keep it as user-reported evidence, not a measured pass; verify the current one-second build separately. Resolve the remaining safety and reliability checks before relying on automatic locking. See [prototype results and next-step handoff](docs/prototype-handoff.md).
-
-## Planned change
-
-- [GitHub issue #1: Increase BLE RSSI sampling cadence to one second](https://github.com/hornley/near-but-far/issues/1)
-- [GitHub issue #2: Add Mac monitoring toggle and manual iPhone lock controls](https://github.com/hornley/near-but-far/issues/2)
-- [Local issue notes](docs/issues/001-one-second-ble-rssi-sampling.md)
-
-## Current implementation status
-
-Issue #1's one-second active sampling target is implemented on this branch. The Mac still uses its five-second missed-response and same-sequence retry timing; the iPhone still uses its ten-second no-challenge estimate. RSSI reads are serialized, and the `-70 dBm` threshold and 60-second test countdown are unchanged. Physical validation of the new cadence and timeout behavior remains pending.
-
-Issue #2 is blocked at the authenticated-session dependency gate. No compatible maintained protocol library was found for the macOS 14 and iOS 17 deployment targets. Pairing, a persistent monitoring preference, and effective monitoring are not implemented. The current BLE exchange remains an unauthenticated prototype and must not be used or shipped as Mac protection. Lock now and Unlock remain unavailable; the app does not lock or unlock the Mac.
-
-The latest signed iPhoneOS build targeted to `roasted ginger` succeeded, but the device-control panel did not expose the physical phone for installation or launch. The current one-second build has not been installed or validated on that phone.
-
-On 2026-11-23, all 12 macOS unit tests passed; the Mac target, iPhone simulator target, and signed iPhone target built successfully. The updated phone build was installed and launched on the paired iPhone. After restarting the Mac app, its challenge sequence reset to 1; the phone acknowledged sequences 1 and 2 at `-50` and `-49 dBm`. The phone now resets its remembered sequence on a new connection, so a Mac app restart does not leave it rejecting challenges as stale. This confirms the updated apps launch and exchange BLE messages at a strong signal. It does not verify the `-70 dBm` threshold or a 60-second physical walk-away trial. A simulator screenshot confirmed the layout; simulator Bluetooth is unsupported.
-
-Command-line checks:
-
-```sh
-xcodebuild -list -project NearButFar.xcodeproj
-xcodebuild test -project NearButFar.xcodeproj -scheme NearButFarTests -destination 'platform=macOS'
-xcodebuild build -project NearButFar.xcodeproj -scheme NearButFarMac -destination 'platform=macOS'
-xcodebuild build -project NearButFar.xcodeproj -scheme NearButFarPhone -destination 'platform=iOS Simulator,name=iPhone 15 Pro Max' CODE_SIGNING_ALLOWED=NO
-```
-
-## Physical-device validation
-
-Run these steps with the Mac app and iPhone companion installed. The feasibility decision depends on actual-device results; a simulator pass is not evidence that BLE background detection works.
-
-1. Grant Bluetooth access and confirm the Mac log contains challenge, acknowledgement, and RSSI rows.
-2. **User-reported complete, not instrumented:** The user left the companion on overnight with the iPhone locked and considers the 30-minute check done. Exact duration and missed-response telemetry were not recorded. Verify the current one-second build separately when the phone is available.
-3. Carry the phone out of range. Record the last RSSI and first `missed_response` time in the Mac CSV log.
-4. The user reports that the weak-signal countdown and return to **Nearby** work. The Mac CSV corroborates a weak sample at `-76 dBm` and recovery at `-47 dBm`. For a repeatable range record, move in two-to-three-metre steps and note the RSSI when the countdown starts; do not treat it as a distance boundary.
-5. The user reports the phone-side 60-second **Would lock** status works. The Mac CSV now records three `would_lock` events, each with `elapsed_seconds=60`; this confirms the Mac-side timer logging too. These events are log-only, and the prototype must not lock the Mac.
-6. The user reports iPhone Bluetooth off/on recovery works and the Mac returns from **Waiting for iPhone** to **iPhone subscribed**. Still confirm the phone's **Unavailable** label while Bluetooth is off, then turn off Mac Bluetooth and confirm the Mac reports monitoring unavailable without a `would_lock` event.
-7. Test walking out of range before a weak RSSI sample; confirm the phone starts its estimate after disconnect or ten seconds without a challenge.
-8. Repeat the out-of-range and return scenarios ten times in different orientations and through walls. Treat RSSI as a relative signal-strength reading, never as meters.
-9. Clarify the exact 60-second boundary: the CSV shows one recovery at the same whole-second timestamp as the countdown boundary and no `would_lock` event, but its timestamp precision cannot show which event happened first.
-
-The user has chosen to start actual app work while carrying the remaining checks forward. The original prototype feasibility gate is not fully passed: the overnight locked-phone run is user-reported without exact duration or telemetry; ten varied-orientation trials remain outstanding, as do the fallback and Bluetooth-unavailable checks. Do not rely on automatic locking until the required reliability and safety checks are complete; if background presence or heartbeat detection proves unreliable, choose another detection method.
-
-## Safety and prototype limits
-
-- RSSI is an imperfect signal-strength sample and cannot be translated reliably into distance.
-- The BLE service is public and does not authenticate or pin the iPhone. Do not use this prototype to protect a Mac.
-- The prototype has no automatic lock, automatic unlock, sleep assertion, custom lock screen, router detection, account, or cloud service.
+The earlier unauthenticated prototype recorded 1,834 acknowledgements from `-84` to `-28 dBm`, three missed responses, nine weak-signal events, ten recoveries, and three log-only `would_lock` events at 60 seconds. A later `-70 dBm` sample recovered at the same whole-second timestamp as expiry, so the order remains unresolved. These logs are historical feasibility evidence; unauthenticated prototype traffic is not used as application presence and never locks the Mac.

@@ -82,7 +82,10 @@ struct ChallengeSchedule {
         return queuedAt.duration(to: now) >= Self.responseTimeout
     }
 
-    mutating func reset() {
-        self = Self()
+    mutating func clearPendingChallenge() {
+        // Keep IDs increasing so a delayed reply cannot match a later monitoring epoch.
+        outstanding = nil
+        pendingAction = nil
+        nextSampleAt = nil
     }
 }
