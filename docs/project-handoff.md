@@ -22,10 +22,11 @@ Snow 0.10.0 contains eight fixes validated by Trail of Bits. The exact release d
 ## Decisions to preserve
 
 - Keep presence, monitoring readiness, and Mac lock state as separate facts. A phone-side estimate is not proof that macOS locked the computer.
+- Keep the app-screen overlay state separate from macOS lock state. The overlay is an app-level deterrent.
 - Treat RSSI as a rough signal reading, not a distance measurement. The threshold is configurable and may vary by environment.
 - Require fresh authenticated presence after app startup or Bluetooth recovery. Bluetooth being unavailable does not prove that the phone left.
-- Do not add lock or unlock messages to the BLE protocol while those actions are unavailable.
-- Do not implement a custom full-screen window as a replacement for the macOS secure lock screen.
+- Do not add BLE messages that claim to lock or unlock the macOS session. App-screen commands must use separate terminology.
+- Do not describe the app overlay as a replacement for the macOS secure lock screen.
 
 ## Remaining work for Issue #1
 
@@ -42,30 +43,35 @@ The older overnight locked-phone run is user-reported, but it has no exact durat
 
 ## Remaining work for Issue #2
 
-The secure pairing and monitoring path is implemented. Complete a physical lifecycle walkthrough and record any gaps before treating pairing and background monitoring as validated.
+The secure pairing and monitoring path is implemented. A user-approved app-screen overlay design now replaces the prior native-lock requirement; implementation and physical walkthroughs remain pending. See the [app screen protection design](superpowers/specs/2026-11-24-app-screen-protection-design.md).
 
 - Check QR expiration, one-use behavior, cancellation, Mac approval or rejection, and recovery after a failed attempt.
 - Check reconnect with the pinned identity and verify that replacing or forgetting a phone revokes the old identity.
 - The Rust bridge tests cover handshake, wrong PSK or Mac pin rejection, transport replay rejection, and short-buffer retry. Keep the device walkthrough focused on the app flow and Bluetooth lifecycle.
 - Verify the iPhone and Mac status screens through pairing, reconnect, monitoring off, Bluetooth unavailable, signal loss, and recovery.
+- Implement the app-screen overlay, authenticated iPhone controls and status, local macOS authentication, and fresh-presence return behavior from the approved design.
 
 ## Lock and unlock
 
-Keep both controls disabled. Do not emit lock or unlock requests, and do not interpret a phone countdown as the Mac's lock state.
+Do not claim that the app screen locks the macOS session. The iPhone **Lock now** and **Unlock** controls will operate the app overlay over the authenticated session, not issue operating-system lock or unlock requests.
 
-Reconsider **Lock now** only after a documented macOS mechanism can request the native secure lock screen and the app can reliably confirm the resulting lock state. Test the request and confirmation path on supported macOS versions before enabling the control.
+The Apple API review found no supported local-app request and confirmation path for macOS's secure lock screen. Apple's [Device Lock command](https://developer.apple.com/documentation/devicemanagement/device-lock-command) is an MDM endpoint that requires Mac supervision and a management access right; it is not the app's implementation route.
 
-Keep **Unlock** unavailable until a documented mechanism preserves macOS local authentication. Do not bypass or simulate Touch ID or password authentication. If macOS provides no supported mechanism for the requested behavior, rescope the feature and leave the control disabled.
+Use macOS's Local Authentication prompt for local Touch ID or password. Never collect the password in the app. The overlay is a deterrent and can still be stopped through other system or physical means.
 
-## Lock-screen design
+### Apple API review (2026-11-24)
 
-[The Quiet Graphite design](lock-screen-design.md) is a visual reference. It describes a quiet graphite screen with the time, date, a lock symbol, and the messages “Mac is locked” and “Use Touch ID or password to return.”
+The public Core Graphics session dictionary reports user, console, and login properties; the documented `SessionAttributeBits` report root, graphics, TTY, and remote-session properties. Neither API documents a lock-state value. Apple's Device Management **Device Lock** command is an MDM endpoint: on macOS it requires supervision and the `AllowPasscodeRemovalAndLock` access right. It is not a local app API, and its acknowledgement is not a query for current lock state. Keep the operating-system lock state unavailable; the approved app-screen controls are separate. Sources: [CGSessionCopyCurrentDictionary](https://developer.apple.com/documentation/coregraphics/cgsessioncopycurrentdictionary()), [Window Server Session Properties](https://developer.apple.com/documentation/coregraphics/window-server-session-properties), [SessionAttributeBits](https://developer.apple.com/documentation/security/sessionattributebits), [Device Lock](https://developer.apple.com/documentation/devicemanagement/device-lock-command), [DeviceLockResponse](https://developer.apple.com/documentation/devicemanagement/devicelockresponse).
 
-The app must invoke the macOS secure lock screen if a supported lock action becomes available. macOS owns that screen and its authentication behavior. Do not use the mockup as a custom app window or claim that its appearance protects the session. Confirm which parts of the reference are achievable through the native macOS lock screen before planning further lock-screen UI work.
+## App-screen design
+
+[The Quiet Graphite design](lock-screen-design.md) is the selected app-screen appearance. It uses a quiet graphite screen with the time, date, a lock symbol, and the messages “Mac is locked” and “Use Touch ID or password to return.” The app presents this overlay; macOS presents and handles the local authentication prompt.
+
+The overlay is not a replacement for macOS's secure lock screen. Keep app-screen state separate from macOS lock-state observation in the protocol and UI.
 
 ## Suggested next sequence
 
 1. Complete the Issue #1 physical reliability and resource-use checks. Attach measurements and logs to Issue #1.
 2. Complete the QR, pairing recovery, and Bluetooth lifecycle walkthrough. Record the results on Issue #2.
-3. Research the documented macOS lock request and lock-state observation options without enabling either control.
-4. Decide whether the Quiet Graphite mockup remains a visual reference or whether its presentation needs to change to match the native macOS lock screen.
+3. Implement and validate the approved app-screen overlay and all three release paths.
+4. Complete physical BLE sampling, pairing, reconnection, and Bluetooth lifecycle checks. Keep macOS secure-lock state unavailable unless Apple documents a supported local app mechanism.
