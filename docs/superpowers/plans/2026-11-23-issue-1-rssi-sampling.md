@@ -98,4 +98,4 @@ struct ChallengeSchedule {
 - With an active connected iPhone, observe roughly one-second new challenges and RSSI readings.
 - Confirm a queued unanswered sequence starts Mac loss after five seconds and retries as the same sequence every five seconds.
 - Confirm the iPhone’s no-challenge estimate still starts at ten seconds, a stronger fresh sample clears the countdown, and a missing sample does not.
-- Record battery/CPU impact and background throttling during physical-device validation. Do not mark the 30-minute locked-phone run or varied-range checks passed until performed.
+- The user reports an overnight background run with the iPhone locked and considers the 30-minute check complete; its exact duration and telemetry are unrecorded. Verify the current one-second build separately, record battery/CPU impact and background throttling, and keep varied-range checks pending.

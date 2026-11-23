@@ -21,9 +21,9 @@ The transport permits one RSSI read at a time. Each acknowledgement uses the RSS
 - A transition across `-70 dBm` appears on the phone promptly; a stronger sample clears the countdown, and the countdown still expires once after 60 seconds of sustained loss.
 - A missed response still starts the Mac's loss timer after five seconds; the same challenge is retried on that five-second timeout, and the phone's no-challenge fallback remains ten seconds.
 - **Pending physical validation:** observe active connected challenge and RSSI cadence, verify threshold/recovery, five-second Mac loss and retry behavior, and the ten-second phone fallback on devices.
-- **Pending physical validation:** test with the iPhone backgrounded and locked; record iOS throttling or suspension.
+- **User-reported background check:** the companion was left on overnight while the iPhone was locked; the user considers the 30-minute check complete. Exact duration and connection telemetry were not recorded. Verify the current one-second build separately and record any iOS throttling or suspension.
 - **Pending physical validation:** compare battery and CPU use against the former five-second cadence, and repeat physical threshold, recovery, disconnect, and Bluetooth-unavailable checks.
-- **Pending physical validation:** complete the 30-minute locked-phone run and varied-range checks.
+- **Pending physical validation:** complete varied-range checks and capture telemetry for the current one-second build. The earlier overnight locked-phone run is user-reported, not instrumented.
 - RSSI remains a relative signal reading, not a distance measurement. No protection or locking behavior is claimed.
 
 ## Notes
