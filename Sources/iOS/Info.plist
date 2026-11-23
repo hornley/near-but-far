@@ -20,6 +20,8 @@
 	<string>1</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Near But Far uses Bluetooth to connect to your Mac and test presence signaling.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Camera access is used only to pair with the Mac.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>bluetooth-central</string>

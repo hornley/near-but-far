@@ -19,22 +19,55 @@
 		B00000000000000000000010 /* PresenceTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000002 /* PresenceTracker.swift */; };
 		B00000000000000000000011 /* NearButFarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000031 /* NearButFarTests.swift */; };
 		B00000000000000000000012 /* PresenceTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000002 /* PresenceTracker.swift */; };
+		B00000000000000000000013 /* ChallengeSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000003 /* ChallengeSchedule.swift */; };
+		B00000000000000000000014 /* MacCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000015 /* MacCoordinator.swift */; };
+		B00000000000000000000015 /* PhoneModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000024 /* PhoneModel.swift */; };
+		B00000000000000000000016 /* SnowBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000041 /* SnowBridge.swift */; };
+		B00000000000000000000019 /* SnowBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000041 /* SnowBridge.swift */; };
+		B00000000000000000000020 /* PeerIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000042 /* PeerIdentity.swift */; };
+		B00000000000000000000021 /* PeerSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000043 /* PeerSession.swift */; };
+		B00000000000000000000022 /* PeerIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000042 /* PeerIdentity.swift */; };
+		B00000000000000000000023 /* PeerSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000043 /* PeerSession.swift */; };
+		B00000000000000000000024 /* SnowBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000041 /* SnowBridge.swift */; };
+		B00000000000000000000025 /* PeerIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000042 /* PeerIdentity.swift */; };
+		B00000000000000000000026 /* PeerSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000043 /* PeerSession.swift */; };
+		B00000000000000000000027 /* NearButFarSession.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = E00000000000000000000004 /* NearButFarSession.xcframework */; };
+		B00000000000000000000028 /* PairedIdentityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000044 /* PairedIdentityStore.swift */; };
+		B00000000000000000000029 /* PairingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000045 /* PairingView.swift */; };
+		B00000000000000000000030 /* PairedIdentityStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000046 /* PairedIdentityStore.swift */; };
+		B00000000000000000000031 /* PairingScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000047 /* PairingScannerView.swift */; };
+		B00000000000000000000032 /* ChallengeSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000003 /* ChallengeSchedule.swift */; };
+		B00000000000000000000033 /* RecentActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000048 /* RecentActivityView.swift */; };
+		B00000000000000000000017 /* NearButFarSession.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = E00000000000000000000004 /* NearButFarSession.xcframework */; };
+		B00000000000000000000018 /* NearButFarSession.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = E00000000000000000000004 /* NearButFarSession.xcframework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		E00000000000000000000001 /* NearButFarMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NearButFarMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E00000000000000000000002 /* NearButFarPhone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NearButFarPhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E00000000000000000000003 /* NearButFarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NearButFarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E00000000000000000000004 /* NearButFarSession.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = Rust/NearButFarSession/build/NearButFarSession.xcframework; sourceTree = SOURCE_ROOT; };
 		F00000000000000000000001 /* BLEProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEProtocol.swift; sourceTree = "<group>"; };
 		F00000000000000000000002 /* PresenceTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresenceTracker.swift; sourceTree = "<group>"; };
+		F00000000000000000000003 /* ChallengeSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChallengeSchedule.swift; sourceTree = "<group>"; };
 		F00000000000000000000011 /* NearButFarMacApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearButFarMacApp.swift; sourceTree = "<group>"; };
 		F00000000000000000000012 /* MacPeripheral.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacPeripheral.swift; sourceTree = "<group>"; };
 		F00000000000000000000013 /* CSVLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVLogger.swift; sourceTree = "<group>"; };
 		F00000000000000000000014 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		F00000000000000000000015 /* MacCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacCoordinator.swift; sourceTree = "<group>"; };
 		F00000000000000000000021 /* NearButFarPhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearButFarPhoneApp.swift; sourceTree = "<group>"; };
 		F00000000000000000000022 /* PhoneCentral.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneCentral.swift; sourceTree = "<group>"; };
 		F00000000000000000000023 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		F00000000000000000000024 /* PhoneModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneModel.swift; sourceTree = "<group>"; };
 		F00000000000000000000031 /* NearButFarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NearButFarTests.swift; sourceTree = "<group>"; };
+		F00000000000000000000041 /* SnowBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnowBridge.swift; sourceTree = "<group>"; };
+		F00000000000000000000042 /* PeerIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerIdentity.swift; sourceTree = "<group>"; };
+		F00000000000000000000043 /* PeerSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeerSession.swift; sourceTree = "<group>"; };
+		F00000000000000000000044 /* PairedIdentityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairedIdentityStore.swift; sourceTree = "<group>"; };
+		F00000000000000000000045 /* PairingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingView.swift; sourceTree = "<group>"; };
+		F00000000000000000000046 /* PairedIdentityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairedIdentityStore.swift; sourceTree = "<group>"; };
+		F00000000000000000000047 /* PairingScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingScannerView.swift; sourceTree = "<group>"; };
+		F00000000000000000000048 /* RecentActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentActivityView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -42,6 +75,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B00000000000000000000017 /* NearButFarSession.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -49,6 +83,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B00000000000000000000018 /* NearButFarSession.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -56,6 +91,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B00000000000000000000027 /* NearButFarSession.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -68,6 +104,7 @@
 				900000000000000000000002 /* Sources */,
 				900000000000000000000006 /* Tests */,
 				900000000000000000000007 /* Products */,
+				E00000000000000000000004 /* NearButFarSession.xcframework */,
 			);
 			sourceTree = "<group>";
 		};
@@ -86,6 +123,10 @@
 			children = (
 				F00000000000000000000001 /* BLEProtocol.swift */,
 				F00000000000000000000002 /* PresenceTracker.swift */,
+				F00000000000000000000003 /* ChallengeSchedule.swift */,
+				F00000000000000000000041 /* SnowBridge.swift */,
+				F00000000000000000000042 /* PeerIdentity.swift */,
+				F00000000000000000000043 /* PeerSession.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -97,6 +138,9 @@
 				F00000000000000000000012 /* MacPeripheral.swift */,
 				F00000000000000000000013 /* CSVLogger.swift */,
 				F00000000000000000000014 /* Info.plist */,
+				F00000000000000000000015 /* MacCoordinator.swift */,
+				F00000000000000000000044 /* PairedIdentityStore.swift */,
+				F00000000000000000000045 /* PairingView.swift */,
 			);
 			path = Mac;
 			sourceTree = "<group>";
@@ -107,6 +151,10 @@
 				F00000000000000000000021 /* NearButFarPhoneApp.swift */,
 				F00000000000000000000022 /* PhoneCentral.swift */,
 				F00000000000000000000023 /* Info.plist */,
+				F00000000000000000000024 /* PhoneModel.swift */,
+				F00000000000000000000046 /* PairedIdentityStore.swift */,
+				F00000000000000000000047 /* PairingScannerView.swift */,
+				F00000000000000000000048 /* RecentActivityView.swift */,
 			);
 			path = iOS;
 			sourceTree = "<group>";
@@ -259,6 +307,13 @@
 				B00000000000000000000003 /* CSVLogger.swift in Sources */,
 				B00000000000000000000004 /* BLEProtocol.swift in Sources */,
 				B00000000000000000000005 /* PresenceTracker.swift in Sources */,
+				B00000000000000000000013 /* ChallengeSchedule.swift in Sources */,
+				B00000000000000000000014 /* MacCoordinator.swift in Sources */,
+				B00000000000000000000019 /* SnowBridge.swift in Sources */,
+				B00000000000000000000020 /* PeerIdentity.swift in Sources */,
+				B00000000000000000000021 /* PeerSession.swift in Sources */,
+				B00000000000000000000028 /* PairedIdentityStore.swift in Sources */,
+				B00000000000000000000029 /* PairingView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -270,6 +325,13 @@
 				B00000000000000000000007 /* PhoneCentral.swift in Sources */,
 				B00000000000000000000008 /* BLEProtocol.swift in Sources */,
 				B00000000000000000000012 /* PresenceTracker.swift in Sources */,
+				B00000000000000000000015 /* PhoneModel.swift in Sources */,
+				B00000000000000000000016 /* SnowBridge.swift in Sources */,
+				B00000000000000000000022 /* PeerIdentity.swift in Sources */,
+				B00000000000000000000023 /* PeerSession.swift in Sources */,
+				B00000000000000000000030 /* PairedIdentityStore.swift in Sources */,
+				B00000000000000000000031 /* PairingScannerView.swift in Sources */,
+				B00000000000000000000033 /* RecentActivityView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -279,7 +341,11 @@
 			files = (
 				B00000000000000000000009 /* BLEProtocol.swift in Sources */,
 				B00000000000000000000010 /* PresenceTracker.swift in Sources */,
+				B00000000000000000000032 /* ChallengeSchedule.swift in Sources */,
 				B00000000000000000000011 /* NearButFarTests.swift in Sources */,
+				B00000000000000000000024 /* SnowBridge.swift in Sources */,
+				B00000000000000000000025 /* PeerIdentity.swift in Sources */,
+				B00000000000000000000026 /* PeerSession.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -290,6 +356,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
+				FRAMEWORK_SEARCH_PATHS = "$(inherited) $(SRCROOT)/Rust/NearButFarSession/build";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				SWIFT_VERSION = 5.0;
@@ -300,6 +367,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
+				FRAMEWORK_SEARCH_PATHS = "$(inherited) $(SRCROOT)/Rust/NearButFarSession/build";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				SWIFT_VERSION = 5.0;
@@ -370,6 +438,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "";
+				FRAMEWORK_SEARCH_PATHS = "$(inherited) $(SRCROOT)/Rust/NearButFarSession/build";
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.nearbutfar.tests;
@@ -384,6 +453,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "";
+				FRAMEWORK_SEARCH_PATHS = "$(inherited) $(SRCROOT)/Rust/NearButFarSession/build";
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.nearbutfar.tests;

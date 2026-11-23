@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 @main
 struct NearButFarPhoneApp: App {
@@ -8,152 +9,312 @@ struct NearButFarPhoneApp: App {
         WindowGroup {
             PhoneContentView()
                 .environmentObject(central)
+                .environmentObject(central.model)
         }
     }
 }
 
 private struct PhoneContentView: View {
     @EnvironmentObject private var central: PhoneCentral
+    @EnvironmentObject private var model: PhoneModel
+    @State private var showsActivityScreen = false
+    @State private var showsPairing = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 12) {
                     statusCard
-
-                    Button("Scan again", systemImage: "arrow.clockwise") {
-                        central.scanAgain()
-                    }
-                    .buttonStyle(.bordered)
-
-                    Text("Recent activity")
-                        .font(.headline)
-
-                    LazyVStack(alignment: .leading, spacing: 8) {
-                        ForEach(Array(central.events.reversed().enumerated()), id: \.offset) { _, event in
-                            Text(event)
-                                .font(.system(.caption2, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .textSelection(.enabled)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }
+                    statusRows
+                    lockActions
                 }
-                .padding(20)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
             }
-            .navigationTitle("Near But Far")
+            .background(Color.black.ignoresSafeArea())
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Near But Far")
+                        .font(.headline)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button("Pair a Mac", systemImage: "qrcode.viewfinder") {
+                            central.beginPairing()
+                            showsPairing = true
+                        }
+                        Button("Scan again", systemImage: "arrow.clockwise") {
+                            central.scanAgain()
+                        }
+                        Button("Recent activity", systemImage: "clock") {
+                            showsActivityScreen = true
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.headline)
+                            .frame(width: 44, height: 44)
+                            .background(Color(uiColor: .secondarySystemBackground), in: Circle())
+                    }
+                    .accessibilityLabel("More options")
+                }
+            }
+            .toolbarBackground(.black, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .navigationDestination(isPresented: $showsActivityScreen) {
+                RecentActivityView(events: central.events)
+            }
         }
         .preferredColorScheme(.dark)
+        .sheet(isPresented: $showsPairing, onDismiss: central.cancelPairing) {
+            PairingScannerView(state: pairingPresentationState,
+                               onPayload: central.acceptScannedPayload,
+                               onCameraUnavailable: central.cameraUnavailable,
+                               onRetry: central.retryPairing,
+                               onCancel: { showsPairing = false })
+        }
+        .onChange(of: statusTitle) { _, title in
+            UIAccessibility.post(notification: .announcement, argument: title)
+        }
+        .onChange(of: macMonitoringTitle) { _, title in
+            UIAccessibility.post(notification: .announcement, argument: "Mac monitoring: \(title)")
+        }
+        .onChange(of: pairingTitle) { _, title in
+            UIAccessibility.post(notification: .announcement, argument: "Pairing: \(title)")
+        }
     }
 
     private var statusCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 10) {
-                Image(systemName: statusSymbol)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(statusTint)
-                Text(statusTitle)
-                    .font(.title2.weight(.semibold))
-                Spacer(minLength: 0)
-            }
-
-            if let seconds = countdownSeconds {
-                Text(formatDuration(seconds))
-                    .font(.system(size: 48, weight: .medium, design: .rounded).monospacedDigit())
-                    .contentTransition(.numericText())
-                Text(statusDetail)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            } else {
-                Text(statusDetail)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-
-            if central.presenceState != .unavailable {
-                HStack(spacing: 18) {
-                    metric(label: "Last RSSI", value: central.lastRSSI.map { "\($0) dBm" } ?? "—")
-                    metric(label: "Test threshold", value: "\(PresenceTracker.weakSignalThreshold) dBm")
-                }
-                .padding(.top, 2)
-            }
-
-            Divider()
-                .overlay(.white.opacity(0.08))
-
-            Label("Mac lock state unavailable", systemImage: "questionmark.circle")
-                .font(.footnote.weight(.medium))
+        VStack(spacing: 4) {
+            Text("PHONE PRESENCE")
+                .font(.caption2.weight(.medium))
+                .tracking(1.4)
                 .foregroundStyle(.secondary)
-            Text("Prototype only · Near But Far does not lock your Mac")
+            Text(statusTitle)
+                .font(.largeTitle.weight(.bold))
+                .accessibilityAddTraits(.isHeader)
+            if let countdownSeconds {
+                Text(formatDuration(countdownSeconds))
+                    .font(.system(.title3, design: .rounded).weight(.semibold).monospacedDigit())
+                    .contentTransition(.numericText())
+            }
+            Text(signalSummary)
                 .font(.caption)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            if let statusContext {
+                Text(statusContext)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 22))
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 16)
+        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16))
         .overlay {
-            RoundedRectangle(cornerRadius: 22)
-                .strokeBorder(.white.opacity(0.06), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(.white.opacity(0.08), lineWidth: 1)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(statusCardAccessibilityLabel)
+    }
+
+    private var statusRows: some View {
+        VStack(spacing: 0) {
+            pairingRow
+            Divider().overlay(.white.opacity(0.16))
+            statusRow("Mac monitoring", value: macMonitoringTitle)
+            Divider().overlay(.white.opacity(0.16))
+            statusRow(
+                "Mac lock state",
+                value: "Unavailable",
+                accessibilityValue: lockObservationAccessibility
+            )
+        }
+    }
+
+    private var pairingRow: some View {
+        HStack(spacing: 8) {
+            Text("Pairing")
+                .font(.caption)
+            Spacer(minLength: 8)
+            Text(pairingTitle)
+                .font(.caption.weight(.semibold))
+                .multilineTextAlignment(.trailing)
+                .accessibilityLabel("Pairing status: \(pairingTitle)")
+            if central.canRetryConnection {
+                Button("Retry", action: central.retryPairing)
+                    .font(.caption.weight(.semibold))
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
+                    .accessibilityLabel("Retry connection")
+                    .accessibilityHint("Reconnect to the saved Mac.")
+            }
+        }
+        .frame(minHeight: 44)
+    }
+
+    private func statusRow(_ title: String, value: String, accessibilityValue: String? = nil) -> some View {
+        HStack(spacing: 8) {
+            Text(title)
+                .font(.caption)
+            Spacer(minLength: 8)
+            Text(value)
+                .font(.caption.weight(.semibold))
+                .multilineTextAlignment(.trailing)
+        }
+        .frame(minHeight: 44)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title): \(accessibilityValue ?? value)")
+    }
+
+    private var lockActions: some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 8) {
+                Button {
+                } label: {
+                    Text("Lock now")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 64)
+                        .background(Color(uiColor: .tertiarySystemBackground), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .disabled(!model.canLockNow)
+                .accessibilityLabel("Lock now")
+                .accessibilityHint("Unavailable because the app cannot confirm the Mac's lock result.")
+                Button {
+                } label: {
+                    Text("Unlock")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 64)
+                        .background(Color(uiColor: .tertiarySystemBackground), in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .disabled(!model.canUnlock)
+                .accessibilityLabel("Unlock")
+                .accessibilityHint("Unlock locally on the Mac with Touch ID or your password.")
+            }
+            Text("The Mac can't confirm a lock result. Unlock locally on the Mac.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
         }
     }
 
     private var statusTitle: String {
-        switch central.presenceState {
+        switch model.presenceState {
         case .waiting: "Waiting for Mac"
         case .nearby: "Nearby"
         case .weakSignalCountdown: "Weak signal"
         case .connectionLostCountdown: "Signal lost"
-        case .wouldLock: "Would lock"
+        case .lockUnavailable: "Lock unavailable"
         case .unavailable: "Unavailable"
         }
     }
 
-    private var statusDetail: String {
-        switch central.presenceState {
-        case .waiting: central.connectionState
-        case .nearby: "Mac responding · \(central.connectionState)"
-        case .weakSignalCountdown: "At or below −70 dBm · phone-side estimate"
-        case .connectionLostCountdown: "Connection lost · phone-side estimate"
-        case .wouldLock: "Test only · the Mac is not being locked"
-        case .unavailable: central.bluetoothState
+    private var statusContext: String? {
+        switch model.presenceState {
+        case .waiting:
+            return central.connectionState.isEmpty ? nil : central.connectionState
+        case .nearby:
+            return nil
+        case .weakSignalCountdown(_):
+            return "Signal is at or below threshold"
+        case .connectionLostCountdown(_):
+            return "No fresh response · local estimate"
+        case .lockUnavailable:
+            return "No lock request was sent · Mac not locked"
+        case .unavailable:
+            let context = central.bluetoothState == "Bluetooth on" ? central.connectionState : central.bluetoothState
+            return context.isEmpty ? nil : context
         }
     }
 
     private var countdownSeconds: Int? {
-        switch central.presenceState {
+        switch model.presenceState {
         case .weakSignalCountdown(let seconds), .connectionLostCountdown(let seconds): seconds
         default: nil
         }
     }
 
-    private var statusSymbol: String {
-        switch central.presenceState {
-        case .waiting: "dot.radiowaves.left.and.right"
-        case .nearby: "dot.radiowaves.left.and.right"
-        case .weakSignalCountdown, .connectionLostCountdown: "hourglass"
-        case .wouldLock: "hourglass.bottomhalf.filled"
-        case .unavailable: "wave.3.right.slash"
+    private var statusCardAccessibilityLabel: String {
+        let countdown = countdownSeconds.map { "\(formatDuration($0)) remaining. " } ?? ""
+        let context = statusContext.map { "\($0). " } ?? ""
+        return "Phone presence: \(statusTitle). \(countdown)\(context)\(signalSummaryAccessibility)"
+    }
+
+    private var pairingTitle: String {
+        switch pairingPresentationState {
+        case .unpaired: "Not paired"
+        case .scanning: central.bluetoothIsAvailable ? "Scanning for Mac" : "Bluetooth unavailable"
+        case .waitingForMacApproval: central.bluetoothIsAvailable ? "Waiting for Mac approval" : "Bluetooth unavailable"
+        case .paired: model.sessionReady ? "Paired" : "Reconnecting"
+        case .expired: "Pairing expired"
+        case .qrMismatch: "QR identity mismatch"
+        case .untrustedMac: "Mac identity mismatch"
+        case .cameraUnavailable: "Camera unavailable"
+        case .storageUnavailable: "Secure storage unavailable"
+        case .bluetoothUnavailable: "Bluetooth unavailable"
         }
     }
 
-    private var statusTint: Color {
-        switch central.presenceState {
-        case .waiting, .unavailable: .secondary
-        case .nearby: .mint
-        case .weakSignalCountdown: .orange
-        case .connectionLostCountdown: .yellow
-        case .wouldLock: .yellow
+    private var macMonitoringTitle: String {
+        guard let status = model.authenticatedMacStatus else { return "Unavailable" }
+        switch status {
+        case .unavailable: return "Off"
+        case .waiting: return "Waiting for iPhone"
+        case .nearby: return "Nearby"
+        case .weakSignal: return "Weak signal"
+        case .signalLost: return "Signal lost"
+        case .lockUnavailable: return "Lock unavailable"
         }
     }
 
-    private func metric(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label.uppercased())
-                .font(.system(size: 10, weight: .semibold, design: .rounded))
-                .foregroundStyle(.tertiary)
-            Text(value)
-                .font(.system(.caption, design: .monospaced).weight(.medium))
-                .foregroundStyle(.secondary)
+    private var lockObservationAccessibility: String {
+        switch model.macLockObservation {
+        case .unavailable: return "The app cannot confirm whether macOS is locked."
+        }
+    }
+
+    private var signalSummary: String {
+        let reading = model.lastRSSI.map { "\($0) dBm" } ?? "— dBm"
+        let signal = model.sessionReady ? reading : (model.lastRSSI.map { "Last \($0) dBm" } ?? reading)
+        if model.hasReceivedThresholdForSession, let threshold = model.signalThreshold {
+            return "\(signal) · threshold \(threshold.rawValue) dBm"
+        }
+        if model.sessionReady {
+            return "\(signal) · threshold syncing"
+        }
+        if let threshold = model.signalThreshold {
+            return "\(signal) · threshold \(threshold.rawValue) dBm last synced"
+        }
+        return "\(signal) · threshold unavailable"
+    }
+
+    private var signalSummaryAccessibility: String {
+        let reading = model.lastRSSI.map { "\($0) dBm" } ?? "unavailable"
+        let signal = model.sessionReady ? "Latest signal, \(reading)" : "Last signal, \(reading)"
+        if model.hasReceivedThresholdForSession, let threshold = model.signalThreshold {
+            return "\(signal). Current authenticated Mac signal threshold, \(threshold.rawValue) dBm. Read only."
+        }
+        if model.sessionReady {
+            return "\(signal). Waiting for the authenticated Mac signal threshold."
+        }
+        if let threshold = model.signalThreshold {
+            return "\(signal). Last synced Mac signal threshold, \(threshold.rawValue) dBm. Read only."
+        }
+        return "\(signal). Mac signal threshold unavailable. Waiting for an authenticated sync."
+    }
+
+    private var pairingPresentationState: PairingScannerState {
+        guard !central.bluetoothIsAvailable else { return central.pairingState }
+        switch central.pairingState {
+        case .scanning, .waitingForMacApproval, .qrMismatch, .untrustedMac: return .bluetoothUnavailable
+        default: return central.pairingState
         }
     }
 

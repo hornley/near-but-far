@@ -1,6 +1,6 @@
 # Issue 001: Sample BLE signal about once per second
 
-- **Status:** Open — GitHub issue [#1](https://github.com/hornley/near-but-far/issues/1); planned, not implemented
+- **Status:** Implementation present on this branch; physical-device validation pending. GitHub issue [#1](https://github.com/hornley/near-but-far/issues/1) remains open.
 - **Area:** Mac challenge interval and iPhone RSSI reporting
 
 ## Problem
@@ -9,19 +9,25 @@ The Mac currently sends a BLE challenge every five seconds, and the iPhone reads
 
 ## Proposed change
 
-Change the connected challenge/RSSI sampling cadence from five seconds to about one second so the phone status responds sooner. This is a target cadence while the companion is active, not continuous measurement or a promise that iOS will deliver readings at that rate in the background. Keep the Mac's five-second missed-response/retransmit timeout and the phone's ten-second no-challenge fallback unchanged; those timers detect loss and are separate from the sample cadence.
+The implementation targets a new challenge and fresh RSSI read about once per second while the companion is active. The Mac's five-second missed-response timeout and same-sequence retry interval remain unchanged, as does the phone's ten-second no-challenge fallback. These timers detect loss and are separate from the sample cadence. iOS may throttle or suspend background work, so one-second sampling is not guaranteed when the app is backgrounded or the phone is locked.
 
 Keep the approved `-70 dBm` experimental threshold and 60-second “Would lock” countdown. Do not change the five-second Mac missed-response/retransmit timeout or the ten-second phone fallback as part of this issue; record any evidence for revisiting them as a separate follow-up. Do not add automatic Mac locking.
 
+The transport permits one RSSI read at a time. Each acknowledgement uses the RSSI returned for its challenge; unavailable readings are reported as unavailable rather than reusing a cached value. The implementation does not claim protection or provide locking.
+
 ## Acceptance criteria
 
-- While the iPhone app is active and connected, Mac challenges and resulting RSSI readings arrive at roughly one-second intervals.
+- While the iPhone app is active and connected, the implementation schedules new Mac challenges roughly once per second and reads RSSI serially, with no overlapping reads or stale/cached samples.
 - A transition across `-70 dBm` appears on the phone promptly; a stronger sample clears the countdown, and the countdown still expires once after 60 seconds of sustained loss.
 - A missed response still starts the Mac's loss timer after five seconds; the same challenge is retried on that five-second timeout, and the phone's no-challenge fallback remains ten seconds.
-- Test the cadence with the iPhone in the background and locked, and document any iOS throttling or suspension.
-- Compare battery and CPU use against the current five-second cadence.
-- Repeat physical threshold, recovery, disconnect, and Bluetooth-unavailable checks. RSSI remains a relative signal reading, not a distance measurement.
+- **Pending physical validation:** observe active connected challenge and RSSI cadence, verify threshold/recovery, five-second Mac loss and retry behavior, and the ten-second phone fallback on devices.
+- **User-reported background check:** the companion was left on overnight while the iPhone was locked; the user considers the 30-minute check complete. Exact duration and connection telemetry were not recorded. Verify the current one-second build separately and record any iOS throttling or suspension.
+- **Pending physical validation:** compare battery and CPU use against the former five-second cadence, and repeat physical threshold, recovery, disconnect, and Bluetooth-unavailable checks.
+- **Pending physical validation:** complete varied-range checks and capture telemetry for the current one-second build. The earlier overnight locked-phone run is user-reported, not instrumented.
+- RSSI remains a relative signal reading, not a distance measurement. No protection or locking behavior is claimed.
 
 ## Notes
 
 One-second sampling is near-live feedback, not true real-time BLE. RSSI can fluctuate around the threshold; record that behavior during trials before deciding whether the test should add filtering or hysteresis.
+
+The current app carries samples through the authenticated, pinned BLE session. Earlier CSV data came from the unauthenticated feasibility prototype and is historical evidence only. Neither the prototype nor the current app locks the Mac.

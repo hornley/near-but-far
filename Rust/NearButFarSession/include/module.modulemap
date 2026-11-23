@@ -1,0 +1,4 @@
+module NearButFarSessionC {
+    header "NearButFarSession.h"
+    export *
+}

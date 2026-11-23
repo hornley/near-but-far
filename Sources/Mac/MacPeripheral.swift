@@ -1,76 +1,150 @@
-import Combine
 import CoreBluetooth
 import Foundation
 
-final class MacPeripheral: NSObject, ObservableObject {
-    @Published private(set) var bluetoothState = "Starting Bluetooth…"
-    @Published private(set) var isSubscribed = false
-    @Published private(set) var lastRSSI: Int16?
-    @Published private(set) var countdown: Int?
-    @Published private(set) var logPath = ""
+enum MacTransportEvent {
+    case bluetoothState(String)
+    case secureLinkOpened(LinkID)
+    case secureRecord(LinkID, Data)
+    case secureLinkClosed(LinkID)
+    case log(String, details: String)
+}
+
+@MainActor
+final class MacPeripheral: NSObject {
+    private struct Link {
+        let id: LinkID
+        let central: CBCentral
+        let reassembler: BLEProtocol.RecordReassembler
+        var outgoingSequence: UInt32 = 0
+        var outgoingSequenceExhausted = false
+        var pendingFrames: [Data] = []
+        var pendingFrameIndex = 0
+    }
+
+    var onEvent: ((MacTransportEvent) -> Void)?
 
     private var manager: CBPeripheralManager!
     private var challengeCharacteristic: CBMutableCharacteristic?
     private var acknowledgementCharacteristic: CBMutableCharacteristic?
     private var service: CBMutableService?
-    private var logger: CSVLogger?
-    private var tracker = PresenceTracker()
-    private var nextSequence: UInt32 = 1
-    private var outstandingSequence: UInt32?
-    private var queuedAt: Date?
-    private var lastQueuedAt: Date?
-    private var retrySequence: UInt32?
-    private var challengeTimer: Timer?
-    private var presenceTimer: Timer?
+    private var linksByCentral: [UUID: Link] = [:]
+    private var centralByLink: [LinkID: UUID] = [:]
+    private var activeLink: LinkID?
+    private(set) var authenticatedCentralID: UUID?
+    private var authenticationDeadlineTask: Task<Void, Never>?
+    private var authenticationDeadlineLink: LinkID?
 
     override init() {
         super.init()
-        do {
-            logger = try CSVLogger()
-            logPath = logger?.fileURL.path ?? ""
-        } catch {
-            bluetoothState = "Log unavailable: \(error.localizedDescription)"
-        }
         manager = CBPeripheralManager(delegate: self, queue: .main)
-        challengeTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
-            self?.challengeInterval()
+    }
+
+    func send(_ records: [OutboundRecord], on linkID: LinkID) -> Bool {
+        guard activeLink == linkID,
+              let centralID = centralByLink[linkID],
+              var link = linksByCentral[centralID],
+              link.id == linkID else { return false }
+
+        for record in records {
+            guard record.link == linkID, !link.outgoingSequenceExhausted else {
+                closeSecureLink(linkID)
+                return false
+            }
+            let frames: [Data]
+            do { frames = try BLEProtocol.fragment(record.bytes, sequence: link.outgoingSequence) }
+            catch {
+                closeSecureLink(linkID)
+                return false
+            }
+            guard link.pendingFrames.count - link.pendingFrameIndex + frames.count <= 128 else {
+                closeSecureLink(linkID)
+                return false
+            }
+            link.pendingFrames.append(contentsOf: frames)
+            if link.outgoingSequence == .max {
+                link.outgoingSequenceExhausted = true
+            } else {
+                link.outgoingSequence += 1
+            }
         }
-        presenceTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            self?.updatePresence()
+        linksByCentral[centralID] = link
+        flushOutbound(on: centralID)
+        return true
+    }
+
+    func markAuthenticated(_ linkID: LinkID) -> Bool {
+        guard activeLink == linkID,
+              let centralID = centralByLink[linkID],
+              linksByCentral[centralID]?.id == linkID else { return false }
+        authenticatedCentralID = centralID
+        cancelAuthenticationDeadline(for: linkID)
+        return true
+    }
+
+    func armAuthenticationDeadline(for linkID: LinkID, after duration: Duration = .seconds(20)) {
+        guard activeLink == linkID, authenticatedCentralID == nil else { return }
+        cancelAuthenticationDeadline()
+        authenticationDeadlineLink = linkID
+        authenticationDeadlineTask = Task { [weak self] in
+            do { try await ContinuousClock().sleep(for: duration) } catch { return }
+            guard let self, !Task.isCancelled, self.activeLink == linkID,
+                  self.authenticatedCentralID == nil,
+                  self.authenticationDeadlineLink == linkID else { return }
+            self.cancelAuthenticationDeadline(for: linkID)
+            self.closeSecureLink(linkID)
         }
     }
 
+    func closeSecureLink(_ linkID: LinkID) {
+        guard let centralID = centralByLink.removeValue(forKey: linkID),
+              let link = linksByCentral.removeValue(forKey: centralID), link.id == linkID else { return }
+        link.reassembler.discardIncompleteRecord()
+        if activeLink == linkID { activeLink = nil }
+        cancelAuthenticationDeadline(for: linkID)
+        if authenticatedCentralID == centralID { authenticatedCentralID = nil }
+        onEvent?(.secureLinkClosed(linkID))
+    }
+
+    func closeCurrentLink() {
+        guard let activeLink else { return }
+        closeSecureLink(activeLink)
+    }
+
+    private func cancelAuthenticationDeadline(for linkID: LinkID? = nil) {
+        if let linkID, authenticationDeadlineLink != linkID { return }
+        authenticationDeadlineTask?.cancel()
+        authenticationDeadlineTask = nil
+        authenticationDeadlineLink = nil
+    }
+
     private func updateBluetoothState() {
+        let state: String
         switch manager.state {
         case .poweredOn:
-            bluetoothState = "Bluetooth on"
+            state = "Bluetooth on"
             if service == nil { installService() }
         case .poweredOff:
-            bluetoothState = "Bluetooth off — monitoring unavailable"
-            isSubscribed = false
-            resetAdvertisement()
+            state = "Bluetooth off — monitoring unavailable"
         case .unauthorized:
-            bluetoothState = "Bluetooth access denied — monitoring unavailable"
-            isSubscribed = false
-            resetAdvertisement()
+            state = "Bluetooth access denied — monitoring unavailable"
         case .unsupported:
-            bluetoothState = "Bluetooth unsupported — monitoring unavailable"
-            isSubscribed = false
-            resetAdvertisement()
+            state = "Bluetooth unsupported — monitoring unavailable"
         case .resetting:
-            bluetoothState = "Bluetooth resetting…"
-            isSubscribed = false
-            resetAdvertisement()
+            state = "Bluetooth resetting…"
         case .unknown:
-            bluetoothState = "Bluetooth state unavailable"
-            isSubscribed = false
-            resetAdvertisement()
+            state = "Bluetooth state unavailable"
         @unknown default:
-            bluetoothState = "Bluetooth state unavailable"
-            isSubscribed = false
-            resetAdvertisement()
+            state = "Bluetooth state unavailable"
         }
-        logger?.log("bluetooth_state", details: bluetoothState)
+        if manager.state != .poweredOn {
+            closeCurrentLink()
+            manager.stopAdvertising()
+            manager.removeAllServices()
+            service = nil
+            challengeCharacteristic = nil
+            acknowledgementCharacteristic = nil
+        }
+        onEvent?(.bluetoothState(state))
     }
 
     private func installService() {
@@ -84,131 +158,94 @@ final class MacPeripheral: NSObject, ObservableObject {
         manager.add(newService)
     }
 
-    private func challengeInterval() {
-        guard manager.state == .poweredOn else { return }
-        if let sequence = outstandingSequence {
-            let now = Date()
-            if let queuedAt, now.timeIntervalSince(queuedAt) >= 5, tracker.isArmed, tracker.lossStartedAt == nil {
-                tracker.missedChallenge(at: now)
-                logger?.log("missed_response", sequence: sequence)
+    private func openSecureLink(for central: CBCentral) {
+        guard linksByCentral[central.identifier] == nil, activeLink == nil else { return }
+        let id = LinkID(rawValue: UUID())
+        let reassembler = BLEProtocol.RecordReassembler(link: id) { [weak self] closedLink in
+            self?.closeSecureLink(closedLink)
+        }
+        let link = Link(id: id, central: central, reassembler: reassembler)
+        linksByCentral[central.identifier] = link
+        centralByLink[id] = central.identifier
+        activeLink = id
+        onEvent?(.secureLinkOpened(id))
+    }
+
+    private func flushOutbound(on centralID: UUID) {
+        guard var link = linksByCentral[centralID], activeLink == link.id,
+              let characteristic = challengeCharacteristic else { return }
+        while link.pendingFrameIndex < link.pendingFrames.count {
+            let frame = link.pendingFrames[link.pendingFrameIndex]
+            guard manager.updateValue(frame, for: characteristic, onSubscribedCentrals: [link.central]) else {
+                linksByCentral[centralID] = link
+                return
             }
-            if retrySequence == nil, let lastQueuedAt, now.timeIntervalSince(lastQueuedAt) >= 5 {
-                publish(sequence)
-            }
-            return
+            link.pendingFrameIndex += 1
         }
-        guard isSubscribed else { return }
-        let sequence = nextSequence
-        nextSequence &+= 1
-        outstandingSequence = sequence
-        publish(sequence)
-    }
-
-    private func publish(_ sequence: UInt32) {
-        guard let characteristic = challengeCharacteristic, isSubscribed else { return }
-        if manager.updateValue(BLEProtocol.encodeChallenge(sequence), for: characteristic, onSubscribedCentrals: nil) {
-            let now = Date()
-            if queuedAt == nil { queuedAt = now }
-            let isRetry = lastQueuedAt != nil
-            lastQueuedAt = now
-            retrySequence = nil
-            logger?.log(isRetry ? "challenge_retransmitted" : "challenge_queued", sequence: sequence)
-        } else {
-            retrySequence = sequence
-            logger?.log("challenge_queue_full", sequence: sequence)
-        }
-    }
-
-    private func updatePresence() {
-        let now = Date()
-        countdown = tracker.secondsRemaining(at: now)
-        if tracker.takeWouldLock(at: now), let started = tracker.lossStartedAt {
-            logger?.log("would_lock", sequence: outstandingSequence, details: "elapsed_seconds=\(Int(now.timeIntervalSince(started)))")
-        }
-    }
-
-    private func resetAdvertisement() {
-        manager.stopAdvertising()
-        manager.removeAllServices()
-        service = nil
-        challengeCharacteristic = nil
-        acknowledgementCharacteristic = nil
-        outstandingSequence = nil
-        queuedAt = nil
-        lastQueuedAt = nil
-        retrySequence = nil
-        tracker = PresenceTracker()
-        countdown = nil
+        link.pendingFrames.removeAll(keepingCapacity: false)
+        link.pendingFrameIndex = 0
+        linksByCentral[centralID] = link
     }
 }
 
-extension MacPeripheral: CBPeripheralManagerDelegate {
+extension MacPeripheral: @preconcurrency CBPeripheralManagerDelegate {
     func peripheralManagerDidUpdateState(_ peripheral: CBPeripheralManager) {
         updateBluetoothState()
     }
 
     func peripheralManager(_ peripheral: CBPeripheralManager, didAdd service: CBService, error: Error?) {
         if let error {
-            bluetoothState = "Service error: \(error.localizedDescription)"
-            logger?.log("service_error", details: error.localizedDescription)
-            return
+            onEvent?(.bluetoothState("Service error: \(error.localizedDescription)"))
+            onEvent?(.log("service_error", details: error.localizedDescription))
+        } else {
+            peripheral.startAdvertising([CBAdvertisementDataServiceUUIDsKey: [BLEProtocol.serviceUUID]])
         }
-        peripheral.startAdvertising([CBAdvertisementDataServiceUUIDsKey: [BLEProtocol.serviceUUID]])
     }
 
     func peripheralManagerDidStartAdvertising(_ peripheral: CBPeripheralManager, error: Error?) {
         if let error {
-            bluetoothState = "Advertising error: \(error.localizedDescription)"
-            logger?.log("advertising_error", details: error.localizedDescription)
+            onEvent?(.bluetoothState("Advertising error: \(error.localizedDescription)"))
+            onEvent?(.log("advertising_error", details: error.localizedDescription))
         } else {
-            logger?.log("advertising_started")
+            onEvent?(.log("advertising_started", details: ""))
         }
     }
 
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didSubscribeTo characteristic: CBCharacteristic) {
-        isSubscribed = true
-        logger?.log("subscribed")
-        if let retrySequence { publish(retrySequence) }
+        guard characteristic.uuid == BLEProtocol.challengeUUID else { return }
+        openSecureLink(for: central)
     }
 
     func peripheralManager(_ peripheral: CBPeripheralManager, central: CBCentral, didUnsubscribeFrom characteristic: CBCharacteristic) {
-        isSubscribed = false
-        logger?.log("unsubscribed")
+        guard characteristic.uuid == BLEProtocol.challengeUUID,
+              let link = linksByCentral[central.identifier]?.id else { return }
+        closeSecureLink(link)
     }
 
     func peripheralManagerIsReady(toUpdateSubscribers peripheral: CBPeripheralManager) {
-        if let sequence = retrySequence { publish(sequence) }
+        guard let centralID = activeLink.flatMap({ centralByLink[$0] }) else { return }
+        flushOutbound(on: centralID)
     }
 
     func peripheralManager(_ peripheral: CBPeripheralManager, didReceiveWrite requests: [CBATTRequest]) {
         for request in requests {
             guard request.characteristic.uuid == BLEProtocol.acknowledgementUUID,
-                  let value = request.value,
-                  let acknowledgement = BLEProtocol.decodeAcknowledgement(value),
-                  let expected = outstandingSequence,
-                  queuedAt != nil,
-                  acknowledgement.sequence == expected else {
-                peripheral.respond(to: request, withResult: .invalidAttributeValueLength)
-                logger?.log("invalid_acknowledgement")
+                  let link = linksByCentral[request.central.identifier],
+                  link.central.identifier == request.central.identifier,
+                  link.id == activeLink,
+                  authenticatedCentralID == nil || authenticatedCentralID == request.central.identifier,
+                  let value = request.value else {
+                peripheral.respond(to: request, withResult: .insufficientAuthentication)
                 continue
             }
-            lastRSSI = acknowledgement.rssi
-            let now = Date()
-            let wasCountingDown = tracker.lossStartedAt != nil
-            tracker.observeRSSI(acknowledgement.rssi, at: now)
-            if !wasCountingDown, tracker.lossStartedAt != nil, let rssi = acknowledgement.rssi {
-                logger?.log("weak_signal", sequence: acknowledgement.sequence, rssi: rssi,
-                            details: "threshold_dbm=\(PresenceTracker.weakSignalThreshold)")
-            } else if wasCountingDown, tracker.lossStartedAt == nil, let rssi = acknowledgement.rssi {
-                logger?.log("signal_recovered", sequence: acknowledgement.sequence, rssi: rssi)
+
+            do {
+                let record = try link.reassembler.append(value)
+                peripheral.respond(to: request, withResult: .success)
+                if let record { onEvent?(.secureRecord(link.id, record)) }
+            } catch {
+                peripheral.respond(to: request, withResult: .invalidAttributeValueLength)
             }
-            countdown = tracker.secondsRemaining(at: now)
-            logger?.log("acknowledgement", sequence: acknowledgement.sequence, rssi: acknowledgement.rssi, details: acknowledgement.rssi == nil ? "rssi_unavailable" : "")
-            outstandingSequence = nil
-            queuedAt = nil
-            lastQueuedAt = nil
-            retrySequence = nil
-            peripheral.respond(to: request, withResult: .success)
         }
     }
 }
