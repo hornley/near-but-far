@@ -23,7 +23,16 @@ enum MacStatus: UInt8, Equatable {
     case nearby = 3
     case weakSignal = 4
     case signalLost = 5
-    case lockUnavailable = 6
+}
+
+enum AppScreenCommand: UInt8, Equatable {
+    case activate = 1
+    case dismiss = 2
+}
+
+enum AppScreenState: UInt8, Equatable {
+    case inactive = 1
+    case active = 2
 }
 
 enum PeerMessage: Equatable {
@@ -34,6 +43,8 @@ enum PeerMessage: Equatable {
     case acknowledgement(sequence: UInt32, rssi: Int16?)
     case status(MacStatus)
     case threshold(Int16)
+    case appScreenCommand(AppScreenCommand)
+    case appScreenState(AppScreenState)
 }
 
 struct VerifiedMessage {
@@ -342,7 +353,8 @@ final class PeerSession {
             next.phase = .established
             events.append(.ready(peerID: peerID, sessionID: hash))
         case (.mac, .established, .acknowledgement), (.phone, .established, .challenge),
-             (.phone, .established, .status), (.phone, .established, .threshold):
+             (.phone, .established, .status), (.phone, .established, .threshold),
+             (.mac, .established, .appScreenCommand), (.phone, .established, .appScreenState):
             guard next.expectedPeerID == peerID else { throw PeerSessionError.wrongPeer }
         default:
             throw PeerSessionError.invalidState
@@ -379,6 +391,10 @@ final class PeerSession {
             withUnsafeBytes(of: encoded) { bytes.append(contentsOf: $0) }
         case let .status(status):
             bytes.append(status.rawValue)
+        case let .appScreenCommand(command):
+            bytes.append(command.rawValue)
+        case let .appScreenState(state):
+            bytes.append(state.rawValue)
         case let .threshold(value):
             let encoded = UInt16(bitPattern: value).bigEndian
             withUnsafeBytes(of: encoded) { bytes.append(contentsOf: $0) }
@@ -401,47 +417,58 @@ final class PeerSession {
         if let expectedID = state.expectedPeerID, senderID != expectedID { throw PeerSessionError.wrongPeer }
         if let peerID = state.peerID, senderID != peerID { throw PeerSessionError.wrongPeer }
         let payload = Array(envelope.dropFirst(Self.envelopeSize))
-        let message: PeerMessage
-        switch envelope[2] {
+        let message = try Self.decodeMessage(tag: envelope[2], payload: payload, receiver: role)
+        guard Self.message(message, isValidForSender: role.remote) else { throw PeerSessionError.wrongPeer }
+        return (senderID, message)
+    }
+
+    static func decodeMessage(tag: UInt8, payload: [UInt8], receiver role: PeerRole) throws -> PeerMessage {
+        switch tag {
         case 1:
             guard payload.isEmpty else { throw PeerSessionError.malformedRecord }
-            message = .pairingPrepared
+            return .pairingPrepared
         case 2:
             guard payload.isEmpty else { throw PeerSessionError.malformedRecord }
-            message = .pairingAccepted
+            return .pairingAccepted
         case 3:
             guard payload.isEmpty else { throw PeerSessionError.malformedRecord }
-            message = .pairingComplete
+            return .pairingComplete
         case 4:
             guard role == .phone, payload.count == 4 else { throw PeerSessionError.malformedRecord }
-            message = .challenge(sequence: Self.readUInt32(Data(payload)))
+            return .challenge(sequence: Self.readUInt32(Data(payload)))
         case 5:
             guard role == .mac, payload.count == 6 else { throw PeerSessionError.malformedRecord }
             let raw = UInt16(payload[4]) << 8 | UInt16(payload[5])
             let rssi = raw == UInt16(bitPattern: Int16.min) ? nil : Int16(bitPattern: raw)
-            message = .acknowledgement(sequence: Self.readUInt32(Data(payload[0..<4])), rssi: rssi)
+            return .acknowledgement(sequence: Self.readUInt32(Data(payload[0..<4])), rssi: rssi)
         case 6:
             guard role == .phone, payload.count == 1,
                   let status = MacStatus(rawValue: payload[0]) else { throw PeerSessionError.malformedRecord }
-            message = .status(status)
+            return .status(status)
         case 7:
             guard payload.count == 2 else { throw PeerSessionError.malformedRecord }
             guard role == .phone else { throw PeerSessionError.wrongPeer }
             let value = Int16(bitPattern: UInt16(payload[0]) << 8 | UInt16(payload[1]))
             guard SignalThreshold(validating: value) != nil else { throw PeerSessionError.malformedRecord }
-            message = .threshold(value)
+            return .threshold(value)
+        case 8:
+            guard role == .mac, payload.count == 1,
+                  let command = AppScreenCommand(rawValue: payload[0]) else { throw PeerSessionError.malformedRecord }
+            return .appScreenCommand(command)
+        case 9:
+            guard role == .phone, payload.count == 1,
+                  let state = AppScreenState(rawValue: payload[0]) else { throw PeerSessionError.malformedRecord }
+            return .appScreenState(state)
         default:
             throw PeerSessionError.malformedRecord
         }
-        guard Self.message(message, isValidForSender: role.remote) else { throw PeerSessionError.wrongPeer }
-        return (senderID, message)
     }
 
     private static func message(_ message: PeerMessage, isValidForSender role: PeerRole) -> Bool {
         switch (role, message) {
         case (.phone, .pairingPrepared), (.phone, .pairingComplete), (.phone, .acknowledgement),
              (.mac, .pairingAccepted), (.mac, .pairingComplete), (.mac, .challenge), (.mac, .status),
-             (.mac, .threshold):
+             (.mac, .threshold), (.phone, .appScreenCommand), (.mac, .appScreenState):
             return true
         default:
             return false
@@ -450,7 +477,8 @@ final class PeerSession {
 
     private static func operationalMessage(_ message: PeerMessage, isValidForSender role: PeerRole) -> Bool {
         switch (role, message) {
-        case (.mac, .challenge), (.mac, .status), (.phone, .acknowledgement):
+        case (.mac, .challenge), (.mac, .status), (.phone, .acknowledgement),
+             (.phone, .appScreenCommand), (.mac, .appScreenState):
             return true
         case let (.mac, .threshold(value)):
             return SignalThreshold(validating: value) != nil
@@ -468,6 +496,8 @@ final class PeerSession {
         case .acknowledgement: 5
         case .status: 6
         case .threshold: 7
+        case .appScreenCommand: 8
+        case .appScreenState: 9
         }
     }
 

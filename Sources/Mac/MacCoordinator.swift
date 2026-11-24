@@ -2,6 +2,7 @@ import Combine
 import CryptoKit
 import Foundation
 import AppKit
+import LocalAuthentication
 
 enum PairingCapability: Equatable {
     case unavailable(String)
@@ -27,6 +28,7 @@ final class MacCoordinator: ObservableObject {
     @Published private(set) var pendingPhoneFingerprint: String?
     @Published private(set) var pairingStatus = ""
     @Published private(set) var pairingCapability: PairingCapability
+    @Published private(set) var appScreenState: AppScreenState = .inactive
     @Published var monitoringEnabled: Bool {
         didSet {
             UserDefaults.standard.set(monitoringEnabled, forKey: Self.monitoringPreferenceKey)
@@ -40,10 +42,6 @@ final class MacCoordinator: ObservableObject {
             if let link = pairingLink, securePeerID != nil { sendThreshold(on: link) }
         }
     }
-    @Published var isPairingPresented = false
-    @Published var isConfirmingReplacement = false
-    @Published var isConfirmingForget = false
-
     private let peripheral: MacPeripheral
     private let logger: CSVLogger?
     private let identityStore: MacPairedIdentityStore
@@ -58,6 +56,12 @@ final class MacCoordinator: ObservableObject {
     private var displayTimer: Timer?
     private var monitoringTask: Task<Void, Never>?
     private var responseWasMissed = false
+    private var appScreenPolicy = AppScreenPolicy()
+    private var appScreenActivationID: UUID?
+    private var lastKnownAway = false
+    private lazy var appScreenOverlayController = AppScreenOverlayController { [weak self] in
+        self?.authenticateForAppScreenDismissal()
+    }
 
     private static let monitoringPreferenceKey = "monitoringEnabled"
     private static let thresholdPreferenceKey = "signalThresholdDBm"
@@ -67,8 +71,22 @@ final class MacCoordinator: ObservableObject {
         return "Secure QR pairing is available on this Mac."
     }
 
-    var canLockNow: Bool { false }
-    var canUnlock: Bool { false }
+    var canLockNow: Bool { true }
+    var canUnlock: Bool { appScreenState == .active }
+
+    func activateAppScreen() {
+        let phoneIsDisconnected = AppScreenPolicy.pairedPhoneIsDisconnected(
+            hasPairedPhone: pairedPhoneFingerprint != nil,
+            hasSecureSession: securePeerID != nil,
+            bluetoothIsPoweredOn: bluetoothState == "Bluetooth on"
+        )
+        let away = tracker.lossStartedAt != nil || lastKnownAway || phoneIsDisconnected
+        let wasActive = appScreenPolicy.state == .active
+        appScreenPolicy.activateManually(whileAway: away)
+        guard !wasActive else { return }
+        appScreenActivationID = UUID()
+        updateAppScreenState()
+    }
 
     func setSignalThreshold(_ value: Int16) {
         guard let threshold = SignalThreshold(validating: value) else { return }
@@ -108,23 +126,20 @@ final class MacCoordinator: ObservableObject {
         }
     }
 
-    func requestPairing() {
+    func requestPairing() -> PairingRequestResult {
         guard pairingCapability.isAvailable else {
             pairingStatus = pairingAvailabilityMessage
-            isPairingPresented = true
-            return
+            return .unavailable
         }
-        isPairingPresented = true
         do {
             if try identityStore.pairedIdentity() != nil {
-                isConfirmingReplacement = true
-                return
+                return .replacementConfirmationRequired
             }
-            beginPairing()
+            return beginPairing() ? .pairingStarted : .unavailable
         } catch {
             pairingStatus = "Could not read the paired phone from Keychain."
             pairingCapability = .unavailable("Secure identity storage is unavailable.")
-            isPairingPresented = true
+            return .unavailable
         }
     }
 
@@ -147,20 +162,11 @@ final class MacCoordinator: ObservableObject {
             beginPairing()
         } catch {
             pairingStatus = "Could not replace the paired phone. Check Keychain access and try again."
-            isPairingPresented = true
         }
-    }
-
-    func requestForgetPhone() {
-        isConfirmingForget = true
     }
 
     func dismissPairingDetails() {
-        if pairingOffer != nil || candidateID != nil {
-            cancelPairing()
-            return
-        }
-        isPairingPresented = false
+        if pairingOffer != nil || candidateID != nil { cancelPairing() }
     }
 
     func forgetPhone() {
@@ -173,13 +179,12 @@ final class MacCoordinator: ObservableObject {
         } catch {
             pairingStatus = "Could not remove the paired phone from Keychain."
         }
-        clearOperationalState()
+        clearOperationalState(resetPresence: true)
     }
 
     func cancelPairing() {
         closePairingSession()
         cancelPairingOffer(status: "Pairing cancelled.")
-        isPairingPresented = false
     }
 
     func approvePhone() throws {
@@ -280,7 +285,6 @@ final class MacCoordinator: ObservableObject {
                 candidateID = candidate
                 pendingPhoneFingerprint = Self.fingerprint(peerStaticKey)
                 pairingStatus = "A phone is requesting to pair."
-                isPairingPresented = true
             case let .ready(peerID, _):
                 guard peripheral.markAuthenticated(link) else {
                     closePairingSession()
@@ -290,6 +294,7 @@ final class MacCoordinator: ObservableObject {
                 pairedPhoneFingerprint = Self.fingerprint(try? identityStore.pairedIdentity()?.publicKey)
                 pairingStatus = "The phone authenticated. Waiting for a fresh verified presence message."
                 sendThreshold(on: link)
+                sendAppScreenState(on: link)
                 if monitoringEnabled { beginMonitoringEpoch() }
                 else { pauseMonitoring() }
                 pairingExpiryTask?.cancel()
@@ -322,18 +327,29 @@ final class MacCoordinator: ObservableObject {
     private func handleVerifiedMessage(_ verified: VerifiedMessage, on link: LinkID) {
         guard pairingLink == link, securePeerID == verified.peerID else { return }
         switch verified.message {
+        case let .appScreenCommand(command):
+            let priorState = appScreenPolicy.state
+            switch command {
+            case .activate:
+                activateAppScreen()
+            case .dismiss:
+                dismissAppScreen()
+            }
+            if priorState == appScreenPolicy.state { sendAppScreenState(on: link) }
         case let .acknowledgement(sequence, rssi):
             if receive(BLEProtocol.Acknowledgement(sequence: sequence, rssi: rssi)) {
                 isSubscribed = true
                 responseWasMissed = false
-                sendStatus(tracker.lossStartedAt == nil ? .nearby : .weakSignal, on: link)
+                if monitoringEnabled {
+                    sendStatus(tracker.lossStartedAt == nil ? .nearby : .weakSignal, on: link)
+                }
             }
         default:
             break
         }
     }
 
-    private func beginPairing() {
+    private func beginPairing() -> Bool {
         closePairingSession()
         cancelPairingOffer(status: "")
         do {
@@ -349,17 +365,17 @@ final class MacCoordinator: ObservableObject {
             pairingOffer = offer
             pairingSecondsRemaining = 120
             pairingStatus = "Scan this one-use code with the phone. Pairing expires in two minutes."
-            isPairingPresented = true
             pairingExpiryTask = Task { [weak self] in
                 try? await ContinuousClock().sleep(until: offer.expiresAt)
                 guard !Task.isCancelled, let self, self.pairingOffer?.id == offer.id else { return }
                 self.closePairingSession()
                 self.cancelPairingOffer(status: "The pairing code expired. Start again to create a new one.")
             }
+            return true
         } catch {
             pairingStatus = "Could not create a secure pairing code. Check Keychain access and try again."
             pairingCapability = .unavailable("Secure identity storage is unavailable.")
-            isPairingPresented = true
+            return false
         }
     }
 
@@ -379,7 +395,7 @@ final class MacCoordinator: ObservableObject {
         if pairingOffer != nil {
             cancelPairingOffer(status: "The pairing connection ended. Create a fresh code to try again.")
         }
-        clearOperationalState()
+        clearOperationalState(resetPresence: true)
     }
 
     private func cancelPairingOffer(status: String) {
@@ -409,9 +425,11 @@ final class MacCoordinator: ObservableObject {
             logger?.log("bluetooth_state", details: state)
             if state != "Bluetooth on" {
                 closePairingSession()
-                clearOperationalState()
+                clearOperationalState(resetPresence: true)
             } else if monitoringEnabled {
                 beginMonitoringEpoch()
+            } else if appScreenPolicy.state == .active {
+                startReturnOnlySampling()
             }
         case let .secureLinkOpened(link):
             beginSession(on: link)
@@ -419,6 +437,9 @@ final class MacCoordinator: ObservableObject {
             receiveSecureRecord(record, on: link)
         case let .secureLinkClosed(link):
             guard pairingLink == link else { return }
+            if bluetoothState == "Bluetooth on" {
+                recordAwayEvidence(at: .now)
+            }
             pairingSession?.close(link)
             pairingSession = nil
             pairingLink = nil
@@ -428,7 +449,7 @@ final class MacCoordinator: ObservableObject {
             if pairingOffer != nil {
                 cancelPairingOffer(status: "The pairing connection ended. Create a fresh code to try again.")
             }
-            clearOperationalState()
+            clearOperationalState(resetPresence: tracker.lossStartedAt == nil)
         case let .log(event, details):
             logger?.log(event, details: details)
         }
@@ -442,7 +463,17 @@ final class MacCoordinator: ObservableObject {
         let now = ContinuousClock.now
         let wasCountingDown = tracker.lossStartedAt != nil
         schedule.acknowledge(acknowledgement.sequence, at: now)
+        let wasAway = tracker.lossStartedAt != nil
         tracker.observeRSSI(acknowledgement.rssi, at: now)
+        if !wasAway, tracker.lossStartedAt != nil {
+            recordAwayEvidence(at: now)
+        }
+        if let rssi = acknowledgement.rssi {
+            if rssi > tracker.threshold.rawValue { lastKnownAway = false }
+            if rssi > tracker.threshold.rawValue, appScreenPolicy.observeFreshStrongPresence() {
+                updateAppScreenState()
+            }
+        }
         lastRSSI = acknowledgement.rssi
         if !wasCountingDown, tracker.lossStartedAt != nil, let rssi = acknowledgement.rssi {
             logger?.log("weak_signal", sequence: acknowledgement.sequence, rssi: rssi,
@@ -457,49 +488,49 @@ final class MacCoordinator: ObservableObject {
         return true
     }
 
-    private func clearOperationalState() {
-        monitoringTask?.cancel()
-        monitoringTask = nil
-        responseWasMissed = false
-        isSubscribed = false
-        lastRSSI = nil
-        outstandingSequence = nil
-        schedule.clearPendingChallenge()
-        tracker = PresenceTracker(threshold: signalThreshold)
-        countdown = nil
-    }
-
     private func refreshDisplay(at now: ContinuousClock.Instant = .now) {
         countdown = tracker.secondsRemaining(at: now)
         if let offer = pairingOffer {
             let remaining = now.duration(to: offer.expiresAt).components
             pairingSecondsRemaining = max(0, Int(remaining.seconds) + (remaining.attoseconds > 0 ? 1 : 0))
         }
-        guard monitoringEnabled, securePeerID != nil, let link = pairingLink else { return }
-        if schedule.responseTimedOut(at: now), !responseWasMissed {
+        guard monitoringEnabled || appScreenPolicy.state == .active else { return }
+        if let link = pairingLink, securePeerID != nil,
+           schedule.responseTimedOut(at: now), !responseWasMissed {
             responseWasMissed = true
+            let wasAway = tracker.lossStartedAt != nil
             tracker.missedChallenge(at: now)
-            sendStatus(.signalLost, on: link)
+            if !wasAway, tracker.lossStartedAt != nil {
+                recordAwayEvidence(at: now)
+            }
+            if monitoringEnabled { sendStatus(.signalLost, on: link) }
         }
-        if tracker.takeWouldLock(at: now), let started = tracker.lossStartedAt {
-            logger?.log("lock_unavailable", sequence: outstandingSequence,
+        if monitoringEnabled, tracker.takeWouldLock(at: now), let started = tracker.lossStartedAt {
+            logger?.log("app_screen_activated", sequence: outstandingSequence,
                         details: "elapsed_seconds=\(started.duration(to: now).components.seconds)")
-            sendStatus(.lockUnavailable, on: link)
+            if appScreenPolicy.activateAutomatically() {
+                appScreenActivationID = UUID()
+                updateAppScreenState(on: pairingLink)
+            }
         }
     }
 
     private func beginMonitoringEpoch() {
         monitoringTask?.cancel()
         monitoringTask = nil
-        clearOperationalState()
-        guard monitoringEnabled, bluetoothState == "Bluetooth on",
+        clearOperationalState(resetPresence: true)
+        guard monitoringEnabled || appScreenPolicy.state == .active,
+              bluetoothState == "Bluetooth on",
               let session = pairingSession, let link = pairingLink, securePeerID != nil else { return }
-        pairingStatus = "Waiting for authenticated iPhone."
-        sendStatus(.waiting, on: link)
+        if monitoringEnabled {
+            pairingStatus = "Waiting for authenticated iPhone."
+            sendStatus(.waiting, on: link)
+        }
         monitoringTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await ContinuousClock().sleep(for: .milliseconds(200))
-                guard let self, !Task.isCancelled, self.monitoringEnabled,
+                guard let self, !Task.isCancelled,
+                      self.monitoringEnabled || self.appScreenPolicy.state == .active,
                       self.pairingSession === session, self.pairingLink == link else { return }
                 let now = ContinuousClock.now
                 if let action = self.schedule.nextAction(at: now) {
@@ -521,8 +552,106 @@ final class MacCoordinator: ObservableObject {
     private func pauseMonitoring() {
         monitoringTask?.cancel()
         monitoringTask = nil
-        clearOperationalState()
+        clearOperationalState(resetPresence: true)
+        startReturnOnlySampling()
+        if monitoringTask != nil { return }
         if let link = pairingLink, securePeerID != nil { sendStatus(.unavailable, on: link) }
+    }
+
+    private func startReturnOnlySampling() {
+        guard appScreenPolicy.state == .active,
+              !monitoringEnabled,
+              bluetoothState == "Bluetooth on",
+              let session = pairingSession, let link = pairingLink, securePeerID != nil else {
+            return
+        }
+        guard monitoringTask == nil else { return }
+        monitoringTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await ContinuousClock().sleep(for: .milliseconds(200))
+                guard let self, !Task.isCancelled, self.appScreenPolicy.state == .active,
+                      !self.monitoringEnabled, self.pairingSession === session,
+                      self.pairingLink == link else { return }
+                let now = ContinuousClock.now
+                if let action = self.schedule.nextAction(at: now) {
+                    do {
+                        let effects = try session.send(.challenge(sequence: action.sequence), on: link)
+                        self.process(effects, on: link)
+                        self.schedule.didQueue(action, at: now)
+                        self.outstandingSequence = action.sequence
+                    } catch {
+                        self.closePairingSession()
+                        return
+                    }
+                }
+                self.refreshDisplay(at: now)
+            }
+        }
+    }
+
+    private func recordAwayEvidence(at time: ContinuousClock.Instant) {
+        lastKnownAway = true
+        tracker.missedChallenge(at: time)
+        appScreenPolicy.observeAway()
+        if appScreenPolicy.state == .active { updateAppScreenState() }
+    }
+
+    private func clearOperationalState(resetPresence: Bool) {
+        monitoringTask?.cancel()
+        monitoringTask = nil
+        responseWasMissed = false
+        isSubscribed = false
+        lastRSSI = nil
+        outstandingSequence = nil
+        schedule.clearPendingChallenge()
+        if resetPresence { tracker = PresenceTracker(threshold: signalThreshold) }
+        countdown = nil
+    }
+
+    private func dismissAppScreen() {
+        guard appScreenPolicy.state == .active else { return }
+        appScreenPolicy.dismiss()
+        appScreenActivationID = nil
+        updateAppScreenState()
+    }
+
+    private func updateAppScreenState(on explicitLink: LinkID? = nil) {
+        let newState = appScreenPolicy.state
+        guard appScreenState != newState else { return }
+        appScreenState = newState
+        if newState == .active {
+            appScreenOverlayController.present()
+            startReturnOnlySampling()
+        } else {
+            appScreenOverlayController.dismiss()
+            if !monitoringEnabled {
+                monitoringTask?.cancel()
+                monitoringTask = nil
+                schedule.clearPendingChallenge()
+                outstandingSequence = nil
+            }
+        }
+        if let link = explicitLink ?? pairingLink { sendAppScreenState(on: link) }
+    }
+
+    private func sendAppScreenState(on link: LinkID) {
+        guard pairingLink == link, let session = pairingSession, securePeerID != nil else { return }
+        do { process(try session.send(.appScreenState(appScreenState), on: link), on: link) }
+        catch { closePairingSession() }
+    }
+
+    private func authenticateForAppScreenDismissal() {
+        guard appScreenPolicy.state == .active, let activationID = appScreenActivationID else { return }
+        let context = LAContext()
+        context.evaluatePolicy(.deviceOwnerAuthentication,
+                               localizedReason: "Authenticate to return to your Mac") { [weak self] success, _ in
+            guard success else { return }
+            Task { @MainActor [weak self] in
+                guard let self, self.appScreenActivationID == activationID,
+                      self.appScreenPolicy.state == .active else { return }
+                self.dismissAppScreen()
+            }
+        }
     }
 
     private func sendStatus(_ status: MacStatus, on link: LinkID) {

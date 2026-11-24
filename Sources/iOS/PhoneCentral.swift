@@ -15,6 +15,17 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
     @Published private(set) var canRetryConnection = false
 
     var bluetoothIsAvailable: Bool { central.state == .poweredOn }
+    var canSendAppScreenCommand: Bool {
+        PhoneAppScreenCommandReadiness.canSend(
+            sessionReady: model.sessionReady,
+            stateReceived: model.hasReceivedAppScreenStateForSession,
+            bluetoothAvailable: bluetoothIsAvailable,
+            hasActiveLink: activeLink != nil,
+            hasSession: session != nil,
+            hasPeripheral: peripheral != nil,
+            hasCharacteristic: acknowledgementCharacteristic != nil
+        )
+    }
 
     private let restorationID = "com.hornley.nearbutfar.phone.central"
     private let eventsKey = "nearButFar.bleEvents"
@@ -147,6 +158,15 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
     }
 
     func cameraUnavailable() { pairingState = .cameraUnavailable }
+
+    func activateAppScreen() { sendAppScreenCommand(.activate) }
+    func dismissAppScreen() { sendAppScreenCommand(.dismiss) }
+
+    private func sendAppScreenCommand(_ command: AppScreenCommand) {
+        guard canSendAppScreenCommand, let link = activeLink, let session else { return }
+        do { process(try session.send(.appScreenCommand(command), on: link)) }
+        catch { failSecureLink(link, error: error as? PeerSessionError ?? .authenticationFailed) }
+    }
 
     func scanAgain() {
         cancelRecovery(resetAttempts: true)

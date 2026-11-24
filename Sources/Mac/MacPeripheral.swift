@@ -136,6 +136,7 @@ final class MacPeripheral: NSObject {
         @unknown default:
             state = "Bluetooth state unavailable"
         }
+        onEvent?(.bluetoothState(state))
         if manager.state != .poweredOn {
             closeCurrentLink()
             manager.stopAdvertising()
@@ -144,7 +145,6 @@ final class MacPeripheral: NSObject {
             challengeCharacteristic = nil
             acknowledgementCharacteristic = nil
         }
-        onEvent?(.bluetoothState(state))
     }
 
     private func installService() {

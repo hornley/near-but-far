@@ -6,20 +6,35 @@ enum PhonePresenceState: Equatable {
     case nearby
     case weakSignalCountdown(Int)
     case connectionLostCountdown(Int)
-    case lockUnavailable
+    case away
     case unavailable
 }
 
 enum PhoneMacStatus: Equatable {
-    case unavailable, waiting, nearby, weakSignal, signalLost, lockUnavailable
+    case unavailable, waiting, nearby, weakSignal, signalLost
 }
 
 enum PhoneDisconnectCause {
     case transportLost, reconnectAttempt, pairingStarted, bluetoothUnavailable
 }
 
-enum PhoneMacLockObservation: Equatable {
-    case unavailable
+enum PhoneAppScreenDisplayState: Equatable {
+    case active, inactive, unavailable
+}
+
+enum PhoneAppScreenCommandReadiness {
+    static func canSend(
+        sessionReady: Bool,
+        stateReceived: Bool,
+        bluetoothAvailable: Bool,
+        hasActiveLink: Bool,
+        hasSession: Bool,
+        hasPeripheral: Bool,
+        hasCharacteristic: Bool
+    ) -> Bool {
+        sessionReady && stateReceived && bluetoothAvailable && hasActiveLink && hasSession &&
+        hasPeripheral && hasCharacteristic
+    }
 }
 
 @MainActor
@@ -29,15 +44,22 @@ final class PhoneModel: ObservableObject {
     @Published private(set) var macStatus: PhoneMacStatus = .unavailable
     @Published private(set) var hasReceivedMacStatus = false
     var authenticatedMacStatus: PhoneMacStatus? { hasReceivedMacStatus ? macStatus : nil }
+    @Published private(set) var appScreenState: AppScreenState = .inactive
+    @Published private(set) var hasReceivedAppScreenStateForSession = false
+    var appScreenDisplayState: PhoneAppScreenDisplayState {
+        guard hasReceivedAppScreenStateForSession else { return .unavailable }
+        return appScreenState == .active ? .active : .inactive
+    }
+    var canSendAppScreenCommand: Bool {
+        sessionReady && bluetoothAvailable && hasReceivedAppScreenStateForSession
+    }
     var localSignalThreshold: SignalThreshold { presenceTracker.threshold }
     @Published private(set) var authenticatedPeerID: UUID?
     @Published private(set) var sessionReady = false
     @Published private(set) var signalThreshold: SignalThreshold? = PhoneModel.loadSavedThreshold()
     @Published private(set) var hasReceivedThresholdForSession = false
-    let macLockObservation: PhoneMacLockObservation = .unavailable
-
-    var canLockNow: Bool { false }
-    var canUnlock: Bool { false }
+    var canLockNow: Bool { canSendAppScreenCommand }
+    var canUnlock: Bool { canSendAppScreenCommand }
 
     private enum LossReason: Equatable {
         case weakSignal
@@ -66,6 +88,7 @@ final class PhoneModel: ObservableObject {
         authenticatedPeerID = nil
         macStatus = .unavailable
         hasReceivedMacStatus = false
+        hasReceivedAppScreenStateForSession = false
         lastChallengeAt = nil
         switch cause {
         case .transportLost:
@@ -94,7 +117,6 @@ final class PhoneModel: ObservableObject {
             case .nearby: macStatus = .nearby
             case .weakSignal: macStatus = .weakSignal
             case .signalLost: macStatus = .signalLost
-            case .lockUnavailable: macStatus = .lockUnavailable
             }
         case let .threshold(rawValue):
             guard let threshold = SignalThreshold(validating: rawValue) else { return }
@@ -102,13 +124,17 @@ final class PhoneModel: ObservableObject {
             hasReceivedThresholdForSession = true
             presenceTracker.threshold = threshold
             UserDefaults.standard.set(Int(rawValue), forKey: Self.thresholdPreferenceKey)
+        case let .appScreenState(state):
+            guard sessionReady else { return }
+            appScreenState = state
+            hasReceivedAppScreenStateForSession = true
         case let .challenge(sequence):
             _ = sequence
             guard sessionReady else { return }
             lastChallengeAt = now
             if !presenceTracker.isArmed { presenceTracker.acknowledge(at: now) }
             refreshPresence(at: now)
-        case .pairingPrepared, .pairingAccepted, .acknowledgement:
+        case .pairingPrepared, .pairingAccepted, .acknowledgement, .appScreenCommand:
             break
         }
     }
@@ -116,6 +142,7 @@ final class PhoneModel: ObservableObject {
     func didAuthenticate(peerID: UUID) {
         authenticatedPeerID = peerID
         sessionReady = true
+        hasReceivedAppScreenStateForSession = false
     }
 
     private func didReadRSSI(_ rssi: Int16?, at now: ContinuousClock.Instant) {
@@ -160,7 +187,7 @@ final class PhoneModel: ObservableObject {
 
         if let remaining = presenceTracker.secondsRemaining(at: now) {
             if remaining == 0 {
-                presenceState = .lockUnavailable
+                presenceState = .away
             } else if lossReason == .weakSignal {
                 presenceState = .weakSignalCountdown(remaining)
             } else {

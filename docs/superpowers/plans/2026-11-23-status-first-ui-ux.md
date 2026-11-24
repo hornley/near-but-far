@@ -1,5 +1,8 @@
 # Status-First UI/UX Implementation Plan
 
+> **Superseded implementation note (2026-11-24):** Historical steps below that describe disabled Lock now/Unlock controls or “Lock unavailable” are superseded by the app-screen implementation. The current Mac menu activates the app screen and reports its state; macOS secure-lock state is not observed or changed.
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `subagent-driven-development` or an equivalent task-by-task execution workflow to implement this plan.
 
 **Goal:** Make the phone show a clear presence estimate, Mac monitoring readiness, and Mac lock observation as separate facts.

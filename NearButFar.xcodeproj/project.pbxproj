@@ -7,6 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B00000000000000000000037 /* AppScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000050 /* AppScreenView.swift */; };
+		B00000000000000000000038 /* AppScreenOverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000051 /* AppScreenOverlayController.swift */; };
+		B00000000000000000000039 /* PairingMenuState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000052 /* PairingMenuState.swift */; };
+		B00000000000000000000040 /* PairingMenuState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000052 /* PairingMenuState.swift */; };
+		B00000000000000000000036 /* PhoneModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000024 /* PhoneModel.swift */; };
+		B00000000000000000000034 /* AppScreenPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000049 /* AppScreenPolicy.swift */; };
+		B00000000000000000000035 /* AppScreenPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000049 /* AppScreenPolicy.swift */; };
 		B00000000000000000000001 /* NearButFarMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000011 /* NearButFarMacApp.swift */; };
 		B00000000000000000000002 /* MacPeripheral.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000012 /* MacPeripheral.swift */; };
 		B00000000000000000000003 /* CSVLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000013 /* CSVLogger.swift */; };
@@ -43,6 +50,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		F00000000000000000000049 /* AppScreenPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppScreenPolicy.swift; sourceTree = "<group>"; };
 		E00000000000000000000001 /* NearButFarMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NearButFarMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E00000000000000000000002 /* NearButFarPhone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NearButFarPhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E00000000000000000000003 /* NearButFarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NearButFarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -68,6 +76,9 @@
 		F00000000000000000000046 /* PairedIdentityStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairedIdentityStore.swift; sourceTree = "<group>"; };
 		F00000000000000000000047 /* PairingScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingScannerView.swift; sourceTree = "<group>"; };
 		F00000000000000000000048 /* RecentActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentActivityView.swift; sourceTree = "<group>"; };
+		F00000000000000000000050 /* AppScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppScreenView.swift; sourceTree = "<group>"; };
+		F00000000000000000000051 /* AppScreenOverlayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppScreenOverlayController.swift; sourceTree = "<group>"; };
+		F00000000000000000000052 /* PairingMenuState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingMenuState.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -127,6 +138,7 @@
 				F00000000000000000000041 /* SnowBridge.swift */,
 				F00000000000000000000042 /* PeerIdentity.swift */,
 				F00000000000000000000043 /* PeerSession.swift */,
+				F00000000000000000000049 /* AppScreenPolicy.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -141,6 +153,9 @@
 				F00000000000000000000015 /* MacCoordinator.swift */,
 				F00000000000000000000044 /* PairedIdentityStore.swift */,
 				F00000000000000000000045 /* PairingView.swift */,
+				F00000000000000000000050 /* AppScreenView.swift */,
+				F00000000000000000000051 /* AppScreenOverlayController.swift */,
+				F00000000000000000000052 /* PairingMenuState.swift */,
 			);
 			path = Mac;
 			sourceTree = "<group>";
@@ -312,8 +327,12 @@
 				B00000000000000000000019 /* SnowBridge.swift in Sources */,
 				B00000000000000000000020 /* PeerIdentity.swift in Sources */,
 				B00000000000000000000021 /* PeerSession.swift in Sources */,
+				B00000000000000000000034 /* AppScreenPolicy.swift in Sources */,
 				B00000000000000000000028 /* PairedIdentityStore.swift in Sources */,
 				B00000000000000000000029 /* PairingView.swift in Sources */,
+				B00000000000000000000037 /* AppScreenView.swift in Sources */,
+				B00000000000000000000038 /* AppScreenOverlayController.swift in Sources */,
+				B00000000000000000000039 /* PairingMenuState.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -346,6 +365,9 @@
 				B00000000000000000000024 /* SnowBridge.swift in Sources */,
 				B00000000000000000000025 /* PeerIdentity.swift in Sources */,
 				B00000000000000000000026 /* PeerSession.swift in Sources */,
+				B00000000000000000000035 /* AppScreenPolicy.swift in Sources */,
+				B00000000000000000000036 /* PhoneModel.swift in Sources */,
+				B00000000000000000000040 /* PairingMenuState.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

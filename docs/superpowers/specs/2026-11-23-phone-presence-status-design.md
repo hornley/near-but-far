@@ -1,5 +1,8 @@
 # iPhone Presence Status Design
 
+**Superseded implementation note (2026-11-24):** This prototype-era screen guidance predates the implemented app screen. The current app reports separate app-screen state and does not observe or change macOS secure-lock state.
+
+
 ## Goal
 
 Make the Near But Far iPhone companion show a clear, minimal estimate of whether the Mac is nearby, approaching the prototype's weak-signal limit, or past the prototype countdown. Keep the real Mac lock state explicitly unavailable: this prototype never locks or unlocks the Mac.

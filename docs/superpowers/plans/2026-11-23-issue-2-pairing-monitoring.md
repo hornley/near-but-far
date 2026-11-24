@@ -1,5 +1,8 @@
 # Issue #2 Pairing and Monitoring Implementation Plan
 
+> **Superseded implementation note (2026-11-24):** Historical lock-unavailable requirements in this plan are superseded by the approved app-screen implementation. App-screen state is separate; macOS secure-lock state is not observed or changed.
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `subagent-driven-development` or an equivalent task-by-task execution workflow to implement this plan.
 
 **Goal:** Pair one iPhone securely, expose a persistent Mac monitoring preference, and represent lock capabilities without claiming or issuing an unverified lock.

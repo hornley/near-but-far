@@ -1,5 +1,8 @@
 # Near But Far app design
 
+**Superseded implementation note (2026-11-24):** The app-screen design now replaces this document's disabled lock-control and unavailable-state guidance. The current app has a separate app-screen state and does not observe or change macOS secure-lock state.
+
+
 **Status:** Approved by user on 2026-11-23
 
 **Implementation status (2026-11-23):** The current branch implements one-use QR pairing, pinned device identities, authenticated BLE sessions, persistent monitoring preference, and the status-first UI. Physical pairing and monitoring validation remain pending. Lock now and Unlock stay disabled because a supported request and trustworthy lock-state confirmation are not established.
