@@ -4,46 +4,65 @@ import SwiftUI
 @main
 struct NearButFarMacApp: App {
     @StateObject private var coordinator = MacCoordinator()
-    @State private var showingSettings = false
+    @State private var menuState = MacMenuState()
 
     var body: some Scene {
         MenuBarExtra("Near But Far", systemImage: "dot.radiowaves.left.and.right") {
             VStack(spacing: 16) {
-                HStack {
-                    Spacer()
-                    Text(showingSettings ? "Settings" : "Near But Far")
-                        .font(.headline)
-                    Spacer()
-                    Button {
-                        showingSettings.toggle()
-                    } label: {
-                        Image(systemName: "slider.horizontal.3")
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Settings")
-
-                    Button {
-                        NSApp.keyWindow?.close()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Close Near But Far")
-                }
-
-                if showingSettings {
-                    settingsView
-                } else {
+                pageHeader
+                switch menuState.page {
+                case .home:
                     homeView
+                case .settings:
+                    settingsView
+                case .pairing:
+                    PairingView(
+                        coordinator: coordinator,
+                        menuState: $menuState,
+                        onClose: closePairing,
+                        onRequestPairing: requestPairing
+                    )
                 }
             }
             .padding(16)
-            .frame(width: 320)
-            .sheet(isPresented: pairingSheetBinding) {
-                PairingView(coordinator: coordinator)
-            }
+            .frame(width: 380)
         }
         .menuBarExtraStyle(.window)
+    }
+
+    @ViewBuilder
+    private var pageHeader: some View {
+        HStack {
+            Text(pageTitle)
+                .font(.headline)
+            Spacer()
+            switch menuState.page {
+            case .home:
+                Button("Settings") { menuState.showSettings() }
+                    .buttonStyle(.plain)
+            case .settings:
+                Button("Back") { menuState.showHome() }
+                    .buttonStyle(.plain)
+            case .pairing:
+                Button("Back") { closePairing() }
+                    .buttonStyle(.plain)
+            }
+            Button {
+                NSApp.keyWindow?.close()
+            } label: {
+                Image(systemName: "xmark")
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close Near But Far")
+        }
+    }
+
+    private var pageTitle: String {
+        switch menuState.page {
+        case .home: return "Near But Far"
+        case .settings: return "Settings"
+        case .pairing: return "Pair iPhone"
+        }
     }
 
     private var homeView: some View {
@@ -71,16 +90,18 @@ struct NearButFarMacApp: App {
             .accessibilityElement(children: .combine)
 
             VStack(spacing: 8) {
-                Button("Lock now", systemImage: "lock.fill") {}
+                Button("Lock now", systemImage: "lock.fill") {
+                    coordinator.activateAppScreen()
+                }
                     .buttonStyle(.borderedProminent)
-                    .disabled(true)
-                Button("Unlock", systemImage: "lock.open") {}
-                    .buttonStyle(.bordered)
-                    .disabled(true)
+                    .disabled(!coordinator.canLockNow)
             }
             .frame(maxWidth: .infinity)
 
-            Text("Locking is unavailable on this Mac.")
+            Text("App screen · \(coordinator.appScreenState == .active ? "Active" : "Inactive")")
+                .font(.caption.weight(.medium))
+                .frame(maxWidth: .infinity)
+            Text("This app screen is a deterrent; it does not lock macOS.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
@@ -100,13 +121,13 @@ struct NearButFarMacApp: App {
                 Slider(value: thresholdBinding, in: -90 ... -50, step: 1)
                     .accessibilityLabel("Signal threshold")
                     .accessibilityValue("\(coordinator.signalThreshold.rawValue) dBm")
-                Text("Changing this threshold does not make locking available.")
+                Text("This threshold controls presence detection and the app screen; it does not lock macOS.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
             Button("Pair iPhone", systemImage: "qrcode") {
-                coordinator.requestPairing()
+                openPairing()
             }
             .buttonStyle(.bordered)
             .disabled(!coordinator.pairingCapability.isAvailable)
@@ -121,17 +142,23 @@ struct NearButFarMacApp: App {
         )
     }
 
-    private var pairingSheetBinding: Binding<Bool> {
-        Binding(
-            get: { coordinator.isPairingPresented },
-            set: { isPresented in
-                if isPresented {
-                    coordinator.isPairingPresented = true
-                } else {
-                    coordinator.dismissPairingDetails()
-                }
-            }
-        )
+    private func openPairing() {
+        menuState.openPairing(returningTo: .settings)
+        requestPairing()
+    }
+
+    private func requestPairing() {
+        switch coordinator.requestPairing() {
+        case .pairingStarted, .unavailable:
+            break
+        case .replacementConfirmationRequired:
+            menuState.requestConfirmation(.replacePhone)
+        }
+    }
+
+    private func closePairing() {
+        coordinator.dismissPairingDetails()
+        menuState.closePairing()
     }
 
     private var presenceSymbol: String {
@@ -145,7 +172,8 @@ struct NearButFarMacApp: App {
             return coordinator.bluetoothState.hasPrefix("Starting") ? "Starting Bluetooth" : "Bluetooth unavailable"
         }
         if !coordinator.monitoringEnabled { return "Monitoring off" }
-        if let countdown = coordinator.countdown { return countdown == 0 ? "Lock unavailable" : "Presence lost" }
+        if coordinator.appScreenState == .active { return "App screen active" }
+        if coordinator.countdown != nil { return "Presence lost" }
         return coordinator.isSubscribed ? "iPhone nearby" : "Waiting for iPhone"
     }
 

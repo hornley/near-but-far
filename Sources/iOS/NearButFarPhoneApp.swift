@@ -18,20 +18,26 @@ private struct PhoneContentView: View {
     @EnvironmentObject private var central: PhoneCentral
     @EnvironmentObject private var model: PhoneModel
     @State private var showsActivityScreen = false
+    @State private var showsStatusDetails = false
     @State private var showsPairing = false
+    @ScaledMetric(relativeTo: .largeTitle) private var statusTitlePointSize = 60.0
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    statusCard
-                    statusRows
-                    lockActions
+            GeometryReader { geometry in
+                ScrollView {
+                    VStack(alignment: .center, spacing: 24) {
+                        statusCard
+                        lockActions
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 16)
+                    .frame(maxWidth: 520)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: geometry.size.height, alignment: .center)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
+                .background(Color.black.ignoresSafeArea())
             }
-            .background(Color.black.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("Near But Far")
@@ -46,6 +52,9 @@ private struct PhoneContentView: View {
                         Button("Scan again", systemImage: "arrow.clockwise") {
                             central.scanAgain()
                         }
+                        Button("Status details", systemImage: "info.circle") {
+                            showsStatusDetails = true
+                        }
                         Button("Recent activity", systemImage: "clock") {
                             showsActivityScreen = true
                         }
@@ -53,7 +62,6 @@ private struct PhoneContentView: View {
                         Image(systemName: "ellipsis")
                             .font(.headline)
                             .frame(width: 44, height: 44)
-                            .background(Color(uiColor: .secondarySystemBackground), in: Circle())
                     }
                     .accessibilityLabel("More options")
                 }
@@ -62,6 +70,11 @@ private struct PhoneContentView: View {
             .toolbarBackground(.visible, for: .navigationBar)
             .navigationDestination(isPresented: $showsActivityScreen) {
                 RecentActivityView(events: central.events)
+            }
+            .navigationDestination(isPresented: $showsStatusDetails) {
+                statusDetailsScreen
+                    .navigationTitle("Status details")
+                    .navigationBarTitleDisplayMode(.inline)
             }
         }
         .preferredColorScheme(.dark)
@@ -78,6 +91,9 @@ private struct PhoneContentView: View {
         .onChange(of: macMonitoringTitle) { _, title in
             UIAccessibility.post(notification: .announcement, argument: "Mac monitoring: \(title)")
         }
+        .onChange(of: appScreenTitle) { _, title in
+            UIAccessibility.post(notification: .announcement, argument: "App screen: \(title)")
+        }
         .onChange(of: pairingTitle) { _, title in
             UIAccessibility.post(notification: .announcement, argument: "Pairing: \(title)")
         }
@@ -85,12 +101,8 @@ private struct PhoneContentView: View {
 
     private var statusCard: some View {
         VStack(spacing: 4) {
-            Text("PHONE PRESENCE")
-                .font(.caption2.weight(.medium))
-                .tracking(1.4)
-                .foregroundStyle(.secondary)
             Text(statusTitle)
-                .font(.largeTitle.weight(.bold))
+                .font(.system(size: statusTitlePointSize, weight: .bold))
                 .accessibilityAddTraits(.isHeader)
             if let countdownSeconds {
                 Text(formatDuration(countdownSeconds))
@@ -120,17 +132,29 @@ private struct PhoneContentView: View {
         .accessibilityLabel(statusCardAccessibilityLabel)
     }
 
+    private var statusDetailsScreen: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                statusRows
+                Text("The home button shows or dismisses the app screen; it does not lock or unlock macOS.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 16)
+        }
+        .background(Color.black.ignoresSafeArea())
+    }
+
     private var statusRows: some View {
         VStack(spacing: 0) {
             pairingRow
             Divider().overlay(.white.opacity(0.16))
             statusRow("Mac monitoring", value: macMonitoringTitle)
             Divider().overlay(.white.opacity(0.16))
-            statusRow(
-                "Mac lock state",
-                value: "Unavailable",
-                accessibilityValue: lockObservationAccessibility
-            )
+            statusRow("App screen", value: appScreenTitle)
         }
     }
 
@@ -170,38 +194,54 @@ private struct PhoneContentView: View {
     }
 
     private var lockActions: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 8) {
-                Button {
-                } label: {
-                    Text("Lock now")
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 64)
-                        .background(Color(uiColor: .tertiarySystemBackground), in: Capsule())
-                }
-                .buttonStyle(.plain)
-                .disabled(!model.canLockNow)
-                .accessibilityLabel("Lock now")
-                .accessibilityHint("Unavailable because the app cannot confirm the Mac's lock result.")
-                Button {
-                } label: {
-                    Text("Unlock")
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 64)
-                        .background(Color(uiColor: .tertiarySystemBackground), in: Capsule())
-                }
-                .buttonStyle(.plain)
-                .disabled(!model.canUnlock)
-                .accessibilityLabel("Unlock")
-                .accessibilityHint("Unlock locally on the Mac with Touch ID or your password.")
-            }
-            Text("The Mac can't confirm a lock result. Unlock locally on the Mac.")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
+        Button(action: toggleAppScreen) {
+            Text(appScreenActionTitle)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(appScreenActionForeground)
+                .frame(maxWidth: .infinity, minHeight: 64)
+                .background(appScreenActionBackground, in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .disabled(!central.canSendAppScreenCommand)
+        .accessibilityLabel(appScreenActionTitle)
+        .accessibilityHint(appScreenActionHint)
+    }
+
+    private var appScreenActionTitle: String {
+        switch model.appScreenDisplayState {
+        case .active: "Unlock"
+        case .inactive: "Lock now"
+        case .unavailable: "App screen unavailable"
+        }
+    }
+
+    private var appScreenActionBackground: Color {
+        guard central.canSendAppScreenCommand else { return Color(uiColor: .tertiarySystemBackground) }
+        switch model.appScreenDisplayState {
+        case .active: return .green
+        case .inactive: return .red
+        case .unavailable: return Color(uiColor: .tertiarySystemBackground)
+        }
+    }
+
+    private var appScreenActionForeground: Color {
+        central.canSendAppScreenCommand ? .black : .secondary
+    }
+
+    private var appScreenActionHint: String {
+        switch model.appScreenDisplayState {
+        case .active: "Dismiss the app-owned Mac screen. This does not unlock macOS."
+        case .inactive: "Show the app-owned Mac screen. This does not lock macOS."
+        case .unavailable: "Connect to the paired Mac to control its app screen."
+        }
+    }
+
+    private func toggleAppScreen() {
+        guard central.canSendAppScreenCommand else { return }
+        switch model.appScreenDisplayState {
+        case .active: central.dismissAppScreen()
+        case .inactive: central.activateAppScreen()
+        case .unavailable: break
         }
     }
 
@@ -211,7 +251,7 @@ private struct PhoneContentView: View {
         case .nearby: "Nearby"
         case .weakSignalCountdown: "Weak signal"
         case .connectionLostCountdown: "Signal lost"
-        case .lockUnavailable: "Lock unavailable"
+        case .away: "Away"
         case .unavailable: "Unavailable"
         }
     }
@@ -226,8 +266,8 @@ private struct PhoneContentView: View {
             return "Signal is at or below threshold"
         case .connectionLostCountdown(_):
             return "No fresh response · local estimate"
-        case .lockUnavailable:
-            return "No lock request was sent · Mac not locked"
+        case .away:
+            return "Phone appears away · local estimate"
         case .unavailable:
             let context = central.bluetoothState == "Bluetooth on" ? central.connectionState : central.bluetoothState
             return context.isEmpty ? nil : context
@@ -270,13 +310,14 @@ private struct PhoneContentView: View {
         case .nearby: return "Nearby"
         case .weakSignal: return "Weak signal"
         case .signalLost: return "Signal lost"
-        case .lockUnavailable: return "Lock unavailable"
         }
     }
 
-    private var lockObservationAccessibility: String {
-        switch model.macLockObservation {
-        case .unavailable: return "The app cannot confirm whether macOS is locked."
+    private var appScreenTitle: String {
+        switch model.appScreenDisplayState {
+        case .active: "Active"
+        case .inactive: "Inactive"
+        case .unavailable: "Unavailable"
         }
     }
 

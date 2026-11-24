@@ -1,5 +1,8 @@
 # iPhone UI Refresh Implementation Plan
 
+> **Superseded implementation note (2026-11-24):** Historical disabled-control and unavailable-lock states in this plan predate the app-screen implementation. The current UI uses separate app-screen state and does not observe or change macOS secure-lock state.
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use subagent-driven-development to implement this plan task-by-task. Keep each worker on its assigned files, integrate after the state interfaces are agreed, and review the visible app before handoff.
 
 **Goal:** Implement the approved minimalist iPhone screen atlas, including Recent activity in the top-right menu, while keeping every displayed state truthful to authenticated app data.

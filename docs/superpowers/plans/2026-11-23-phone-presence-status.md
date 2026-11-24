@@ -1,5 +1,8 @@
 # iPhone Presence Status Implementation Plan
 
+> **Superseded implementation note (2026-11-24):** Historical prototype instructions below that show Mac lock state as unavailable or use “Would lock” predate the app-screen implementation. The current app has a separate app-screen state and does not observe or change macOS secure-lock state.
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Show an honest phone-side estimate of the Mac's nearby, weak-signal, and “would lock” test states using an experimental `-70 dBm` threshold and the existing 60-second grace period.
