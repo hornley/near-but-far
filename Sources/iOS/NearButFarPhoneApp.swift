@@ -24,50 +24,7 @@ private struct PhoneContentView: View {
 
     var body: some View {
         NavigationStack {
-            GeometryReader { geometry in
-                ScrollView {
-                    VStack(alignment: .center, spacing: 24) {
-                        statusCard
-                        lockActions
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 16)
-                    .frame(maxWidth: 520)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: geometry.size.height, alignment: .center)
-                }
-                .background(Color.black.ignoresSafeArea())
-            }
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text("Near But Far")
-                        .font(.headline)
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button("Pair a Mac", systemImage: "qrcode.viewfinder") {
-                            central.beginPairing()
-                            showsPairing = true
-                        }
-                        Button("Scan again", systemImage: "arrow.clockwise") {
-                            central.scanAgain()
-                        }
-                        Button("Status details", systemImage: "info.circle") {
-                            showsStatusDetails = true
-                        }
-                        Button("Recent activity", systemImage: "clock") {
-                            showsActivityScreen = true
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                            .font(.headline)
-                            .frame(width: 44, height: 44)
-                    }
-                    .accessibilityLabel("More options")
-                }
-            }
-            .toolbarBackground(.black, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
+            homeScreen
             .navigationDestination(isPresented: $showsActivityScreen) {
                 RecentActivityView(events: central.events)
             }
@@ -99,36 +56,81 @@ private struct PhoneContentView: View {
         }
     }
 
-    private var statusCard: some View {
+    private var homeScreen: some View {
+        GeometryReader { geometry in
+            ScrollView(.vertical) {
+                VStack(spacing: 0) {
+                    homeHeader
+                    Spacer(minLength: 0)
+                    presenceSummary
+                    Spacer(minLength: 0)
+                    lockAction
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
+                .padding(.bottom, max(24, geometry.size.height * 0.13))
+                .frame(maxWidth: 520)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: geometry.size.height, alignment: .top)
+            }
+            .scrollIndicators(.hidden)
+            .background(screenBackground.ignoresSafeArea())
+        }
+        .toolbar(.hidden, for: .navigationBar)
+        .statusBarHidden(true)
+    }
+
+    private var homeHeader: some View {
+        HStack {
+            Text("Near But Far")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Color.white.opacity(0.66))
+
+            Spacer()
+
+            Menu {
+                Button("Pair a Mac", systemImage: "qrcode.viewfinder") {
+                    central.beginPairing()
+                    showsPairing = true
+                }
+                Button("Scan again", systemImage: "arrow.clockwise") {
+                    central.scanAgain()
+                }
+                Button("Status details", systemImage: "info.circle") {
+                    showsStatusDetails = true
+                }
+                Button("Recent activity", systemImage: "clock") {
+                    showsActivityScreen = true
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Color.white.opacity(0.88))
+                    .frame(width: 44, height: 44)
+                    .background(Color.white.opacity(0.075), in: Circle())
+                    .contentShape(Circle())
+            }
+            .accessibilityLabel("More options")
+        }
+        .frame(height: 44)
+    }
+
+    private var presenceSummary: some View {
         VStack(spacing: 4) {
             Text(statusTitle)
                 .font(.system(size: statusTitlePointSize, weight: .bold))
+                .tracking(-2.2)
+                .lineLimit(1)
+                .minimumScaleFactor(0.62)
                 .accessibilityAddTraits(.isHeader)
-            if let countdownSeconds {
-                Text(formatDuration(countdownSeconds))
-                    .font(.system(.title3, design: .rounded).weight(.semibold).monospacedDigit())
-                    .contentTransition(.numericText())
-            }
-            Text(signalSummary)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            if let statusContext {
-                Text(statusContext)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
+
+            Text(homeSignalReading)
+                .font(.system(size: 18, weight: .medium))
+                .foregroundStyle(Color.white.opacity(0.64))
+                .monospacedDigit()
         }
         .frame(maxWidth: .infinity)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 16)
-        .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 16))
-        .overlay {
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(.white.opacity(0.08), lineWidth: 1)
-        }
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(statusCardAccessibilityLabel)
     }
 
@@ -136,7 +138,7 @@ private struct PhoneContentView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 statusRows
-                Text("The home button shows or dismisses the app screen; it does not lock or unlock macOS.")
+                Text("The lock icon controls the app-owned Mac screen. It does not lock or unlock macOS.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -145,11 +147,25 @@ private struct PhoneContentView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 16)
         }
-        .background(Color.black.ignoresSafeArea())
+        .background(screenBackground.ignoresSafeArea())
+        .toolbar(.visible, for: .navigationBar)
+        .statusBarHidden(false)
     }
 
     private var statusRows: some View {
         VStack(spacing: 0) {
+            statusRow("Phone presence", value: statusTitle)
+            Divider().overlay(.white.opacity(0.16))
+            statusRow("Signal", value: signalSummary)
+            if let countdownSeconds {
+                Divider().overlay(.white.opacity(0.16))
+                statusRow("Time remaining", value: formatDuration(countdownSeconds))
+            }
+            if let statusContext {
+                Divider().overlay(.white.opacity(0.16))
+                statusRow("Presence detail", value: statusContext)
+            }
+            Divider().overlay(.white.opacity(0.16))
             pairingRow
             Divider().overlay(.white.opacity(0.16))
             statusRow("Mac monitoring", value: macMonitoringTitle)
@@ -193,18 +209,23 @@ private struct PhoneContentView: View {
         .accessibilityLabel("\(title): \(accessibilityValue ?? value)")
     }
 
-    private var lockActions: some View {
+    private var lockAction: some View {
         Button(action: toggleAppScreen) {
-            Text(appScreenActionTitle)
-                .font(.headline.weight(.semibold))
+            Image(systemName: appScreenActionSymbol)
+                .font(.system(size: 24, weight: .medium))
                 .foregroundStyle(appScreenActionForeground)
-                .frame(maxWidth: .infinity, minHeight: 64)
-                .background(appScreenActionBackground, in: Capsule())
+                .frame(width: 92, height: 92)
+                .background(appScreenActionBackground, in: Circle())
+                .overlay {
+                    Circle()
+                        .strokeBorder(appScreenActionBorder, lineWidth: 1)
+                }
         }
         .buttonStyle(.plain)
         .disabled(!central.canSendAppScreenCommand)
         .accessibilityLabel(appScreenActionTitle)
         .accessibilityHint(appScreenActionHint)
+        .frame(width: 92, height: 92)
     }
 
     private var appScreenActionTitle: String {
@@ -216,16 +237,29 @@ private struct PhoneContentView: View {
     }
 
     private var appScreenActionBackground: Color {
-        guard central.canSendAppScreenCommand else { return Color(uiColor: .tertiarySystemBackground) }
+        guard central.canSendAppScreenCommand else { return .clear }
         switch model.appScreenDisplayState {
-        case .active: return .green
-        case .inactive: return .red
-        case .unavailable: return Color(uiColor: .tertiarySystemBackground)
+        case .active: return Color(red: 0.96, green: 0.96, blue: 0.97)
+        case .inactive, .unavailable: return .clear
         }
     }
 
     private var appScreenActionForeground: Color {
-        central.canSendAppScreenCommand ? .black : .secondary
+        guard central.canSendAppScreenCommand else { return Color.white.opacity(0.34) }
+        return model.appScreenDisplayState == .active ? Color.black : Color.white
+    }
+
+    private var appScreenActionBorder: Color {
+        guard central.canSendAppScreenCommand else { return Color.white.opacity(0.16) }
+        return model.appScreenDisplayState == .inactive ? Color.white.opacity(0.25) : .clear
+    }
+
+    private var appScreenActionSymbol: String {
+        switch model.appScreenDisplayState {
+        case .active: "lock"
+        case .inactive: "lock.open"
+        case .unavailable: "lock.slash"
+        }
     }
 
     private var appScreenActionHint: String {
@@ -336,6 +370,10 @@ private struct PhoneContentView: View {
         return "\(signal) · threshold unavailable"
     }
 
+    private var homeSignalReading: String {
+        model.lastRSSI.map { "\($0) dBm" } ?? "— dBm"
+    }
+
     private var signalSummaryAccessibility: String {
         let reading = model.lastRSSI.map { "\($0) dBm" } ?? "unavailable"
         let signal = model.sessionReady ? "Latest signal, \(reading)" : "Last signal, \(reading)"
@@ -361,5 +399,9 @@ private struct PhoneContentView: View {
 
     private func formatDuration(_ seconds: Int) -> String {
         String(format: "%02d:%02d", seconds / 60, seconds % 60)
+    }
+
+    private var screenBackground: Color {
+        Color(red: 0.04, green: 0.04, blue: 0.04)
     }
 }

@@ -18,6 +18,8 @@ struct RecentActivityView: View {
         }
         .navigationTitle("Recent activity")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
+        .statusBarHidden(false)
     }
 }
 
