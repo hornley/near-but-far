@@ -11,6 +11,8 @@
 		B00000000000000000000038 /* AppScreenOverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000051 /* AppScreenOverlayController.swift */; };
 		B00000000000000000000039 /* PairingMenuState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000052 /* PairingMenuState.swift */; };
 		B00000000000000000000040 /* PairingMenuState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000052 /* PairingMenuState.swift */; };
+		B00000000000000000000041 /* BatteryPercentageIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000053 /* BatteryPercentageIcon.swift */; };
+		B00000000000000000000042 /* BatteryPercentageIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000053 /* BatteryPercentageIcon.swift */; };
 		B00000000000000000000036 /* PhoneModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000024 /* PhoneModel.swift */; };
 		B00000000000000000000034 /* AppScreenPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000049 /* AppScreenPolicy.swift */; };
 		B00000000000000000000035 /* AppScreenPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000049 /* AppScreenPolicy.swift */; };
@@ -79,6 +81,7 @@
 		F00000000000000000000050 /* AppScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppScreenView.swift; sourceTree = "<group>"; };
 		F00000000000000000000051 /* AppScreenOverlayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppScreenOverlayController.swift; sourceTree = "<group>"; };
 		F00000000000000000000052 /* PairingMenuState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingMenuState.swift; sourceTree = "<group>"; };
+		F00000000000000000000053 /* BatteryPercentageIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryPercentageIcon.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -139,6 +142,7 @@
 				F00000000000000000000042 /* PeerIdentity.swift */,
 				F00000000000000000000043 /* PeerSession.swift */,
 				F00000000000000000000049 /* AppScreenPolicy.swift */,
+				F00000000000000000000053 /* BatteryPercentageIcon.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -333,6 +337,7 @@
 				B00000000000000000000037 /* AppScreenView.swift in Sources */,
 				B00000000000000000000038 /* AppScreenOverlayController.swift in Sources */,
 				B00000000000000000000039 /* PairingMenuState.swift in Sources */,
+				B00000000000000000000041 /* BatteryPercentageIcon.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -351,6 +356,7 @@
 				B00000000000000000000030 /* PairedIdentityStore.swift in Sources */,
 				B00000000000000000000031 /* PairingScannerView.swift in Sources */,
 				B00000000000000000000033 /* RecentActivityView.swift in Sources */,
+				B00000000000000000000042 /* BatteryPercentageIcon.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
