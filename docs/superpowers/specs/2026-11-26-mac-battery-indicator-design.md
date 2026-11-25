@@ -1,6 +1,6 @@
 # Mac Battery Indicator Design
 
-**Status:** Visual direction approved by the user on 2026-11-26. Detailed spec is ready for user review before planning.
+**Status:** Approved by the user on 2026-11-26.
 
 **Issue:** [#6 — Show Mac battery percentage on the lock screen and in the iPhone app](https://github.com/hornley/near-but-far/issues/6).
 
