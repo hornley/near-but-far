@@ -14,6 +14,8 @@
 		B00000000000000000000041 /* BatteryPercentageIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000053 /* BatteryPercentageIcon.swift */; };
 		B00000000000000000000042 /* BatteryPercentageIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000053 /* BatteryPercentageIcon.swift */; };
 		B00000000000000000000043 /* MacBatteryMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000054 /* MacBatteryMonitor.swift */; };
+		B00000000000000000000044 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000055 /* AppIcon.icns */; };
+		B00000000000000000000045 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000056 /* Assets.xcassets */; };
 		B00000000000000000000036 /* PhoneModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000024 /* PhoneModel.swift */; };
 		B00000000000000000000034 /* AppScreenPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000049 /* AppScreenPolicy.swift */; };
 		B00000000000000000000035 /* AppScreenPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000049 /* AppScreenPolicy.swift */; };
@@ -54,7 +56,7 @@
 
 /* Begin PBXFileReference section */
 		F00000000000000000000049 /* AppScreenPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppScreenPolicy.swift; sourceTree = "<group>"; };
-		E00000000000000000000001 /* NearButFarMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NearButFarMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E00000000000000000000001 /* Near But Far.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Near But Far.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		E00000000000000000000002 /* NearButFarPhone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NearButFarPhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E00000000000000000000003 /* NearButFarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NearButFarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E00000000000000000000004 /* NearButFarSession.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = Rust/NearButFarSession/build/NearButFarSession.xcframework; sourceTree = SOURCE_ROOT; };
@@ -84,6 +86,8 @@
 		F00000000000000000000052 /* PairingMenuState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingMenuState.swift; sourceTree = "<group>"; };
 		F00000000000000000000053 /* BatteryPercentageIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryPercentageIcon.swift; sourceTree = "<group>"; };
 		F00000000000000000000054 /* MacBatteryMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacBatteryMonitor.swift; sourceTree = "<group>"; };
+		F00000000000000000000055 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
+		F00000000000000000000056 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -163,6 +167,7 @@
 				F00000000000000000000050 /* AppScreenView.swift */,
 				F00000000000000000000051 /* AppScreenOverlayController.swift */,
 				F00000000000000000000052 /* PairingMenuState.swift */,
+				F00000000000000000000055 /* AppIcon.icns */,
 			);
 			path = Mac;
 			sourceTree = "<group>";
@@ -177,6 +182,7 @@
 				F00000000000000000000046 /* PairedIdentityStore.swift */,
 				F00000000000000000000047 /* PairingScannerView.swift */,
 				F00000000000000000000048 /* RecentActivityView.swift */,
+				F00000000000000000000056 /* Assets.xcassets */,
 			);
 			path = iOS;
 			sourceTree = "<group>";
@@ -192,7 +198,7 @@
 		900000000000000000000007 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				E00000000000000000000001 /* NearButFarMac.app */,
+				E00000000000000000000001 /* Near But Far.app */,
 				E00000000000000000000002 /* NearButFarPhone.app */,
 				E00000000000000000000003 /* NearButFarTests.xctest */,
 			);
@@ -215,8 +221,8 @@
 			dependencies = (
 			);
 			name = NearButFarMac;
-			productName = NearButFarMac;
-			productReference = E00000000000000000000001 /* NearButFarMac.app */;
+			productName = "Near But Far";
+			productReference = E00000000000000000000001 /* Near But Far.app */;
 			productType = "com.apple.product-type.application";
 		};
 		800000000000000000000002 /* NearButFarPhone */ = {
@@ -300,6 +306,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B00000000000000000000044 /* AppIcon.icns in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -307,6 +314,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B00000000000000000000045 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -414,7 +422,7 @@
 				INFOPLIST_FILE = Sources/Mac/Info.plist;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.nearbutfar.mac;
-				PRODUCT_NAME = NearButFarMac;
+				PRODUCT_NAME = "Near But Far";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
 			};
@@ -428,7 +436,7 @@
 				INFOPLIST_FILE = Sources/Mac/Info.plist;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.nearbutfar.mac;
-				PRODUCT_NAME = NearButFarMac;
+				PRODUCT_NAME = "Near But Far";
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
 			};
@@ -441,6 +449,7 @@
 				DEVELOPMENT_TEAM = L4J95GK2UU;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Sources/iOS/Info.plist;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.nearbutfar.phone;
 				PRODUCT_NAME = NearButFarPhone;
@@ -457,6 +466,7 @@
 				DEVELOPMENT_TEAM = L4J95GK2UU;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Sources/iOS/Info.plist;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.nearbutfar.phone;
 				PRODUCT_NAME = NearButFarPhone;
