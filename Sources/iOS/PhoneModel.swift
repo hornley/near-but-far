@@ -40,6 +40,7 @@ enum PhoneAppScreenCommandReadiness {
 @MainActor
 final class PhoneModel: ObservableObject {
     @Published private(set) var lastRSSI: Int?
+    @Published private(set) var macBatteryLevel: UInt8?
     @Published private(set) var presenceState: PhonePresenceState = .waiting
     @Published private(set) var macStatus: PhoneMacStatus = .unavailable
     @Published private(set) var hasReceivedMacStatus = false
@@ -68,6 +69,7 @@ final class PhoneModel: ObservableObject {
 
     private var presenceTracker = PresenceTracker()
     private var lastChallengeAt: ContinuousClock.Instant?
+    private var lastMacBatteryUpdateAt: ContinuousClock.Instant?
     private var lossReason: LossReason?
     private var bluetoothAvailable = true
 
@@ -86,6 +88,8 @@ final class PhoneModel: ObservableObject {
         sessionReady = false
         hasReceivedThresholdForSession = false
         authenticatedPeerID = nil
+        macBatteryLevel = nil
+        lastMacBatteryUpdateAt = nil
         macStatus = .unavailable
         hasReceivedMacStatus = false
         hasReceivedAppScreenStateForSession = false
@@ -128,6 +132,10 @@ final class PhoneModel: ObservableObject {
             guard sessionReady else { return }
             appScreenState = state
             hasReceivedAppScreenStateForSession = true
+        case let .macBatteryLevel(level):
+            guard sessionReady else { return }
+            macBatteryLevel = level
+            lastMacBatteryUpdateAt = now
         case let .challenge(sequence):
             _ = sequence
             guard sessionReady else { return }
@@ -166,6 +174,12 @@ final class PhoneModel: ObservableObject {
     }
 
     func refreshPresence(at now: ContinuousClock.Instant = ContinuousClock.now) {
+        if let lastMacBatteryUpdateAt,
+           lastMacBatteryUpdateAt.duration(to: now) >= .seconds(120) {
+            macBatteryLevel = nil
+            self.lastMacBatteryUpdateAt = nil
+        }
+
         guard bluetoothAvailable else {
             presenceState = .unavailable
             return

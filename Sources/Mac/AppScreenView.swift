@@ -2,6 +2,8 @@ import SwiftUI
 
 struct AppScreenView: View {
     let onAuthenticate: () -> Void
+    @ObservedObject var batteryMonitor: MacBatteryMonitor
+    let safeAreaTopInset: CGFloat
 
     var body: some View {
         ZStack {
@@ -57,6 +59,10 @@ struct AppScreenView: View {
                     .foregroundStyle(.white)
                 }
             }
+
+            BatteryPercentageIcon(percentage: batteryMonitor.percentage, size: 28, color: .white.opacity(0.78))
+                .padding(.top, safeAreaTopInset + 18)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
 }

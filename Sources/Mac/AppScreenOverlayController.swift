@@ -16,9 +16,11 @@ final class AppScreenOverlayController: NSObject {
     private var screenObserver: NSObjectProtocol?
     private var terminationObserver: NSObjectProtocol?
     private let onAuthenticate: () -> Void
+    private let batteryMonitor: MacBatteryMonitor
 
-    init(onAuthenticate: @escaping () -> Void) {
+    init(onAuthenticate: @escaping () -> Void, batteryMonitor: MacBatteryMonitor) {
         self.onAuthenticate = onAuthenticate
+        self.batteryMonitor = batteryMonitor
         super.init()
         screenObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
@@ -89,6 +91,11 @@ final class AppScreenOverlayController: NSObject {
             if let existing = windows[identifier] {
                 window = existing
                 window.setFrame(screen.frame, display: true)
+                (window.contentView as? NSHostingView<AppScreenView>)?.rootView = AppScreenView(
+                    onAuthenticate: onAuthenticate,
+                    batteryMonitor: batteryMonitor,
+                    safeAreaTopInset: screen.safeAreaInsets.top
+                )
             } else {
                 let created = OverlayWindow(
                     contentRect: screen.frame,
@@ -102,7 +109,11 @@ final class AppScreenOverlayController: NSObject {
                 created.isOpaque = true
                 created.backgroundColor = NSColor(red: 0.035, green: 0.039, blue: 0.047, alpha: 1)
                 created.hasShadow = false
-                created.contentView = NSHostingView(rootView: AppScreenView(onAuthenticate: onAuthenticate))
+                created.contentView = NSHostingView(rootView: AppScreenView(
+                    onAuthenticate: onAuthenticate,
+                    batteryMonitor: batteryMonitor,
+                    safeAreaTopInset: screen.safeAreaInsets.top
+                ))
                 windows[identifier] = created
                 window = created
             }

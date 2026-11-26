@@ -29,6 +29,7 @@ final class MacCoordinator: ObservableObject {
     @Published private(set) var pairingStatus = ""
     @Published private(set) var pairingCapability: PairingCapability
     @Published private(set) var appScreenState: AppScreenState = .inactive
+    @Published private(set) var macBatteryPercentage: UInt8?
     @Published var monitoringEnabled: Bool {
         didSet {
             UserDefaults.standard.set(monitoringEnabled, forKey: Self.monitoringPreferenceKey)
@@ -52,6 +53,7 @@ final class MacCoordinator: ObservableObject {
     private var pairingExpiryTask: Task<Void, Never>?
     private var schedule = ChallengeSchedule()
     private var tracker: PresenceTracker
+    private let batteryMonitor = MacBatteryMonitor()
     private var outstandingSequence: UInt32?
     private var displayTimer: Timer?
     private var monitoringTask: Task<Void, Never>?
@@ -59,9 +61,10 @@ final class MacCoordinator: ObservableObject {
     private var appScreenPolicy = AppScreenPolicy()
     private var appScreenActivationID: UUID?
     private var lastKnownAway = false
-    private lazy var appScreenOverlayController = AppScreenOverlayController { [weak self] in
-        self?.authenticateForAppScreenDismissal()
-    }
+    private lazy var appScreenOverlayController = AppScreenOverlayController(
+        onAuthenticate: { [weak self] in self?.authenticateForAppScreenDismissal() },
+        batteryMonitor: batteryMonitor
+    )
 
     private static let monitoringPreferenceKey = "monitoringEnabled"
     private static let thresholdPreferenceKey = "signalThresholdDBm"
@@ -120,6 +123,15 @@ final class MacCoordinator: ObservableObject {
             self.pairingCapability = .unavailable(self.pairingStatus)
         }
         self.peripheral.onEvent = { [weak self] event in self?.handle(event) }
+        batteryMonitor.onRefresh = { [weak self] value in
+            guard let self else { return }
+            self.macBatteryPercentage = value
+            guard self.pairingSession != nil,
+                  let link = self.pairingLink,
+                  self.securePeerID != nil else { return }
+            self.sendMacBatteryLevel(value, on: link)
+        }
+        macBatteryPercentage = batteryMonitor.percentage
         if monitoringEnabled { beginMonitoringEpoch() }
         displayTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in self?.refreshDisplay() }
@@ -294,6 +306,7 @@ final class MacCoordinator: ObservableObject {
                 pairedPhoneFingerprint = Self.fingerprint(try? identityStore.pairedIdentity()?.publicKey)
                 pairingStatus = "The phone authenticated. Waiting for a fresh verified presence message."
                 sendThreshold(on: link)
+                sendMacBatteryLevel(macBatteryPercentage, on: link)
                 sendAppScreenState(on: link)
                 if monitoringEnabled { beginMonitoringEpoch() }
                 else { pauseMonitoring() }
@@ -663,6 +676,12 @@ final class MacCoordinator: ObservableObject {
     private func sendThreshold(on link: LinkID) {
         guard pairingLink == link, let session = pairingSession, securePeerID != nil else { return }
         do { process(try session.send(.threshold(signalThreshold.rawValue), on: link), on: link) }
+        catch { closePairingSession() }
+    }
+
+    private func sendMacBatteryLevel(_ percentage: UInt8?, on link: LinkID) {
+        guard pairingLink == link, let session = pairingSession, securePeerID != nil else { return }
+        do { process(try session.send(.macBatteryLevel(percentage), on: link), on: link) }
         catch { closePairingSession() }
     }
 }

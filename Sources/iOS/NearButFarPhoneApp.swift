@@ -128,6 +128,11 @@ private struct PhoneContentView: View {
                 .font(.system(size: 18, weight: .medium))
                 .foregroundStyle(Color.white.opacity(0.64))
                 .monospacedDigit()
+
+            BatteryPercentageIcon(percentage: model.macBatteryLevel, size: 16,
+                                  color: Color.white.opacity(0.64))
+                .frame(maxWidth: .infinity)
+                .accessibilityHidden(true)
         }
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .ignore)
@@ -318,7 +323,8 @@ private struct PhoneContentView: View {
     private var statusCardAccessibilityLabel: String {
         let countdown = countdownSeconds.map { "\(formatDuration($0)) remaining. " } ?? ""
         let context = statusContext.map { "\($0). " } ?? ""
-        return "Phone presence: \(statusTitle). \(countdown)\(context)\(signalSummaryAccessibility)"
+        let battery = model.macBatteryLevel.map { "Mac battery, \($0) percent." } ?? "Mac battery unavailable."
+        return "Phone presence: \(statusTitle). \(countdown)\(context)\(signalSummaryAccessibility) \(battery)"
     }
 
     private var pairingTitle: String {
