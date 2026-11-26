@@ -20,6 +20,8 @@
 		B00000000000000000000034 /* AppScreenPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000049 /* AppScreenPolicy.swift */; };
 		B00000000000000000000035 /* AppScreenPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000049 /* AppScreenPolicy.swift */; };
 		B00000000000000000000001 /* NearButFarMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000011 /* NearButFarMacApp.swift */; };
+		B00000000000000000000046 /* MacMenuBarPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000057 /* MacMenuBarPanel.swift */; };
+		B00000000000000000000047 /* MacMenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000058 /* MacMenuBarController.swift */; };
 		B00000000000000000000002 /* MacPeripheral.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000012 /* MacPeripheral.swift */; };
 		B00000000000000000000003 /* CSVLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000013 /* CSVLogger.swift */; };
 		B00000000000000000000004 /* BLEProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000001 /* BLEProtocol.swift */; };
@@ -88,6 +90,8 @@
 		F00000000000000000000054 /* MacBatteryMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacBatteryMonitor.swift; sourceTree = "<group>"; };
 		F00000000000000000000055 /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
 		F00000000000000000000056 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F00000000000000000000057 /* MacMenuBarPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacMenuBarPanel.swift; sourceTree = "<group>"; };
+		F00000000000000000000058 /* MacMenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacMenuBarController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -157,6 +161,8 @@
 			isa = PBXGroup;
 			children = (
 				F00000000000000000000011 /* NearButFarMacApp.swift */,
+				F00000000000000000000057 /* MacMenuBarPanel.swift */,
+				F00000000000000000000058 /* MacMenuBarController.swift */,
 				F00000000000000000000012 /* MacPeripheral.swift */,
 				F00000000000000000000013 /* CSVLogger.swift */,
 				F00000000000000000000014 /* Info.plist */,
@@ -333,6 +339,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				B00000000000000000000001 /* NearButFarMacApp.swift in Sources */,
+				B00000000000000000000046 /* MacMenuBarPanel.swift in Sources */,
+				B00000000000000000000047 /* MacMenuBarController.swift in Sources */,
 				B00000000000000000000002 /* MacPeripheral.swift in Sources */,
 				B00000000000000000000003 /* CSVLogger.swift in Sources */,
 				B00000000000000000000004 /* BLEProtocol.swift in Sources */,
