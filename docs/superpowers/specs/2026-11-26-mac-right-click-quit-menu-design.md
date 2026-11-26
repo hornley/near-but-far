@@ -1,6 +1,6 @@
 # Mac Right-Click Quit Menu Design
 
-**Status:** Design approved by the user on 2026-11-26; written spec pending review.
+**Status:** Approved by the user on 2026-11-26 via `$workflow-plan approved`.
 
 **Issue:** [#8 — Add a right-click menu with a Quit action](https://github.com/hornley/near-but-far/issues/8).
 
