@@ -14,7 +14,7 @@
 
 **Approved specification:** [Mac Right-Click Quit Menu Design](../specs/2026-11-26-mac-right-click-quit-menu-design.md), approved by the user on 2026-11-26.
 
-**Plan status:** Ready for implementation. Implementation has not started.
+**Plan status:** Implementation commit `533a762` passed spec-compliance, code-quality, and final reviews. The Mac target build succeeded. Visible UI and accessibility walkthroughs remain pending because Computer Use timed out while attaching to the built app (`-10005: timeoutReached`).
 
 **Change branch:** `t3/right-click-quit-menu`, based on `origin/main`.
 
@@ -39,9 +39,9 @@
 
 **Acceptance criteria:** The app creates one status item. Left-click opens the existing panel in a popover and preserves its controls, navigation, and state. Right-click opens a native menu containing exactly **Quit**. The status item exposes an accessible name and an accessibility action that opens the Quit menu. Selecting **Quit** uses normal AppKit termination.
 
-- [ ] Move the existing panel content from `NearButFarMacApp.swift` into `MacMenuBarPanel.swift`. Keep the `MacCoordinator` and `MacMenuState` ownership in the single persistent panel root. Pass an `onClose` action into the panel so its close button asks the controller to close the popover.
-- [ ] Add `MacMenuBarController` in `MacMenuBarController.swift`. It owns one `NSStatusItem`, one transient `NSPopover`, and one `NSMenu`; create and retain the SwiftUI hosting controller once so opening the popover does not recreate the coordinator or menu state. Anchor the popover to the status-item button and close it before showing the context menu.
-- [ ] Route the status-item button's events explicitly with `sendAction(on:)`. Left mouse-up toggles the popover; right mouse-up opens the Quit menu. Control-click also opens the Quit menu. Use the current AppKit event type to choose the action:
+- [x] Move the existing panel content from `NearButFarMacApp.swift` into `MacMenuBarPanel.swift`. Keep the `MacCoordinator` and `MacMenuState` ownership in the single persistent panel root. Pass an `onClose` action into the panel so its close button asks the controller to close the popover.
+- [x] Add `MacMenuBarController` in `MacMenuBarController.swift`. It owns one `NSStatusItem`, one transient `NSPopover`, and one `NSMenu`; create and retain the SwiftUI hosting controller once so opening the popover does not recreate the coordinator or menu state. Anchor the popover to the status-item button and close it before showing the context menu.
+- [x] Route the status-item button's events explicitly with `sendAction(on:)`. Left mouse-up toggles the popover; right mouse-up opens the Quit menu. Control-click also opens the Quit menu. Use the current AppKit event type to choose the action:
 
   ```swift
   guard let event = NSApp.currentEvent else { return }
@@ -59,7 +59,7 @@
 
   Present the native menu at the status-item button with `NSMenu.popUp(positioning:at:in:)` so it behaves as a context menu anchored to the icon.
 
-- [ ] Build the Quit menu with one item and no separators or additional actions. Target the standard application termination selector:
+- [x] Build the Quit menu with one item and no separators or additional actions. Target the standard application termination selector:
 
   ```swift
   let quitItem = NSMenuItem(
@@ -71,10 +71,10 @@
   quitMenu.addItem(quitItem)
   ```
 
-- [ ] Add an accessibility label to the status-item button and an accessibility custom action named **Show Quit menu** that calls the same menu-presentation method as right-click. Keep the native Quit menu item available to keyboard and assistive-technology users after it opens.
-- [ ] Adapt `NearButFarMacApp.swift` to retain a `MacMenuBarAppDelegate` through `@NSApplicationDelegateAdaptor`; initialize the controller once in `applicationDidFinishLaunching(_:)`. Keep the app running when the popover closes, create no second status item or user-facing window, and preserve the existing accessory-app behavior.
-- [ ] Register both new Swift files in the NearButFarMac target in `NearButFar.xcodeproj/project.pbxproj`.
-- [ ] Self-review the complete implementation diff against the approved spec. Commit the feature as `feat: add right-click quit menu`.
+- [x] Add an accessibility label to the status-item button and an accessibility custom action named **Show Quit menu** that calls the same menu-presentation method as right-click. Keep the native Quit menu item available to keyboard and assistive-technology users after it opens.
+- [x] Adapt `NearButFarMacApp.swift` to retain a `MacMenuBarAppDelegate` through `@NSApplicationDelegateAdaptor`; initialize the controller once in `applicationDidFinishLaunching(_:)`. Keep the app running when the popover closes, create no second status item or user-facing window, and preserve the existing accessory-app behavior.
+- [x] Register both new Swift files in the NearButFarMac target in `NearButFar.xcodeproj/project.pbxproj`.
+- [x] Self-review the complete implementation diff against the approved spec. Commit the feature as `feat: add right-click quit menu`.
 
 ## Task 2: Review specification compliance
 
@@ -86,10 +86,10 @@
 
 **Acceptance criteria:** Every approved acceptance criterion is represented in the code, and the implementation adds no extra right-click menu actions or unrelated behavior.
 
-- [ ] Verify left-click still opens the existing panel and the panel retains its controls, navigation, coordinator, monitoring session, pairing state, and menu state.
-- [ ] Verify right-click and Control-click open exactly one native menu item labeled **Quit**; verify the accessibility custom action opens the same menu.
-- [ ] Verify the Quit item targets normal application termination and leaves the existing `willTerminateNotification` cleanup path intact.
-- [ ] Report findings only. Route any required fix to a bounded follow-up for the implementation worker, then repeat this review before Task 3.
+- [x] Verify left-click still opens the existing panel and the panel retains its controls, navigation, coordinator, monitoring session, pairing state, and menu state.
+- [x] Verify right-click and Control-click open exactly one native menu item labeled **Quit**; verify the accessibility custom action opens the same menu.
+- [x] Verify the Quit item targets normal application termination and leaves the existing `willTerminateNotification` cleanup path intact.
+- [x] Report findings only. Route any required fix to a bounded follow-up for the implementation worker, then repeat this review before Task 3. Review result: PASS, no findings.
 
 ## Task 3: Review code quality
 
@@ -101,10 +101,10 @@
 
 **Acceptance criteria:** Click routing, ownership, event and popover lifetime, and accessibility wiring are clear and safe. The change creates one status item and does not restart monitoring when the popover opens or closes.
 
-- [ ] Review event routing for left-click, right-click, Control-click, and the accessibility custom action.
-- [ ] Review object ownership for the status item, controller, popover, hosting controller, and SwiftUI state so the controller and panel remain alive until app termination.
-- [ ] Review app termination behavior and confirm the implementation calls AppKit's normal termination path.
-- [ ] Report findings only. Route any correctness or maintainability fix to the implementation worker and repeat affected review gates before Task 4.
+- [x] Review event routing for left-click, right-click, Control-click, and the accessibility custom action.
+- [x] Review object ownership for the status item, controller, popover, hosting controller, and SwiftUI state so the controller and panel remain alive until app termination.
+- [x] Review app termination behavior and confirm the implementation calls AppKit's normal termination path.
+- [x] Report findings only. Route any correctness or maintainability fix to the implementation worker and repeat affected review gates before Task 4. Review result: PASS, no findings.
 
 ## Task 4: Integrate and complete final review
 
@@ -116,12 +116,12 @@
 
 **Acceptance criteria:** The integrated change meets the approved spec, the macOS target builds, and a visible walkthrough confirms the panel and context-menu behavior.
 
-- [ ] Review the integrated diff against every acceptance criterion and confirm there are no iOS, pairing-protocol, monitoring-policy, or app-screen behavior changes outside the approved scope.
-- [ ] Build the Mac target with `xcodebuild build -project NearButFar.xcodeproj -scheme NearButFarMac -destination 'platform=macOS'`. Expected result: `BUILD SUCCEEDED`.
-- [ ] With the Near But Far Mac app running and its app screen inactive, use the visible Mac app UI to confirm left-click opens the existing panel, its Settings and Pair iPhone navigation remains usable, right-click shows only **Quit**, and selecting **Quit** exits the app.
-- [ ] Confirm the status item has the intended accessibility name and that the **Show Quit menu** accessibility action and native Quit item are exposed through accessibility inspection or VoiceOver.
-- [ ] Review the existing `NSApplication.willTerminateNotification` observer and confirm its cleanup remains connected to normal Quit. Record any live cleanup limitation if the overlay state cannot be exercised through the new menu.
-- [ ] Record the build and walkthrough results in the implementation handoff; leave pull request, merge, and release steps for their workflow stages.
+- [x] Review the integrated diff against every acceptance criterion and confirm there are no iOS, pairing-protocol, monitoring-policy, or app-screen behavior changes outside the approved scope. Final review result: PASS, no findings.
+- [x] Build the Mac target with `xcodebuild build -project NearButFar.xcodeproj -scheme NearButFarMac -destination 'platform=macOS'`. Result: `BUILD SUCCEEDED` after generating the documented Rust XCFramework prerequisite.
+- [ ] With the Near But Far Mac app running and its app screen inactive, use the visible Mac app UI to confirm left-click opens the existing panel, its Settings and Pair iPhone navigation remains usable, right-click shows only **Quit**, and selecting **Quit** exits the app. **Pending:** `cua.getApp()` timed out twice with `Computer Use server error -10005: timeoutReached`; the app did not appear in the running-app inventory.
+- [ ] Confirm the status item has the intended accessibility name and that the **Show Quit menu** accessibility action and native Quit item are exposed through accessibility inspection or VoiceOver. **Pending:** blocked by the same Computer Use timeout.
+- [x] Review the existing `NSApplication.willTerminateNotification` observer and confirm its cleanup remains connected to normal Quit. Source-level review passed; live overlay cleanup remains unverified.
+- [x] Record the build and walkthrough results in the implementation handoff; leave pull request, merge, and release steps for their workflow stages. Visible and accessibility results are pending because Computer Use could not attach.
 
 ## Spec coverage
 
