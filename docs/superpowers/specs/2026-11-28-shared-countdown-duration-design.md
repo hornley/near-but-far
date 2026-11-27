@@ -1,6 +1,6 @@
 # Shared countdown duration and iPhone countdown design
 
-**Status:** Draft for user review  
+**Status:** Approved by user on 2026-11-28
 **Issues:** [#11](https://github.com/hornley/near-but-far/issues/11), [#12](https://github.com/hornley/near-but-far/issues/12)
 
 ## Goal
