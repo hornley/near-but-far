@@ -2,6 +2,33 @@ import XCTest
 import CryptoKit
 
 final class NearButFarTests: XCTestCase {
+    func testCountdownDurationValidatesBoundsAndStep() {
+        XCTAssertEqual(CountdownDuration(validating: 15)?.seconds, 15)
+        XCTAssertEqual(CountdownDuration(validating: 60)?.seconds, 60)
+        XCTAssertEqual(CountdownDuration(validating: 180)?.seconds, 180)
+        XCTAssertNil(CountdownDuration(validating: 14))
+        XCTAssertNil(CountdownDuration(validating: 16))
+        XCTAssertNil(CountdownDuration(validating: 61))
+        XCTAssertNil(CountdownDuration(validating: 181))
+    }
+
+    func testTrackerKeepsTheDurationCapturedWhenLossStarts() throws {
+        let sixty = try XCTUnwrap(CountdownDuration(validating: 60))
+        let thirty = try XCTUnwrap(CountdownDuration(validating: 30))
+        var tracker = PresenceTracker(duration: sixty)
+        let start = ContinuousClock.now
+        tracker.acknowledge(at: start)
+        tracker.missedChallenge(at: start)
+
+        tracker.setConfiguredDuration(thirty)
+
+        XCTAssertEqual(tracker.secondsRemaining(at: start.advanced(by: .seconds(59))), 1)
+        XCTAssertTrue(tracker.takeWouldLock(at: start.advanced(by: .seconds(60))))
+        tracker.acknowledge(at: start.advanced(by: .seconds(61)))
+        tracker.missedChallenge(at: start.advanced(by: .seconds(61)))
+        XCTAssertEqual(tracker.secondsRemaining(at: start.advanced(by: .seconds(61))), 30)
+    }
+
     func testCancelingForgetOrReplaceLeavesPairingPageAndReturnsNoAction() {
         for confirmation in [PairingConfirmation.forgetPhone, .replacePhone] {
             var state = MacMenuState()
@@ -307,6 +334,27 @@ final class NearButFarTests: XCTestCase {
         })
         XCTAssertThrowsError(try mac.send(.appScreenCommand(.dismiss), on: macLink))
         XCTAssertThrowsError(try mac.receive(record, from: macLink))
+    }
+
+    @MainActor
+    func testCountdownDurationMessageUsesTheAuthenticatedSession() throws {
+        let (phone, mac, phoneLink, macLink) = try makeEstablishedSessions()
+        let bytes = try XCTUnwrap(
+            try mac.send(.countdownDuration(90), on: macLink).outbound.first
+        ).bytes
+
+        let effects = try phone.receive(bytes, from: phoneLink)
+        XCTAssertTrue(effects.events.contains {
+            if case let .received(message) = $0 { return message.message == .countdownDuration(90) }
+            return false
+        })
+        XCTAssertThrowsError(try phone.send(.countdownDuration(90), on: phoneLink))
+        XCTAssertThrowsError(try mac.send(.countdownDuration(91), on: macLink))
+        XCTAssertThrowsError(try PeerSession.decodeMessage(tag: 11, payload: [0, 14], receiver: .phone))
+        XCTAssertThrowsError(try PeerSession.decodeMessage(tag: 11, payload: [0, 91], receiver: .phone))
+        XCTAssertThrowsError(try PeerSession.decodeMessage(tag: 11, payload: [0, 181], receiver: .phone))
+        XCTAssertThrowsError(try PeerSession.decodeMessage(tag: 11, payload: [90], receiver: .phone))
+        XCTAssertThrowsError(try PeerSession.decodeMessage(tag: 11, payload: [0, 90], receiver: .mac))
     }
 
     @MainActor
