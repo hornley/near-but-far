@@ -451,8 +451,12 @@ final class NearButFarTests: XCTestCase {
     }
 
     @MainActor
-    func testPhoneAwayPresenceDoesNotClaimLockUnavailable() {
-        let model = PhoneModel()
+    func testPhoneAwayPresenceDoesNotClaimLockUnavailable() throws {
+        let suite = "PhoneAwayPresenceTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let model = PhoneModel(userDefaults: defaults)
         let now = ContinuousClock.now
         model.didAuthenticate(peerID: UUID())
         model.didReceiveAuthenticated(.challenge(sequence: 1), at: now)
