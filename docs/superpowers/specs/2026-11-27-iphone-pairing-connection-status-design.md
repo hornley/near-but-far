@@ -1,6 +1,6 @@
 # iPhone Pairing Connection Status and Error Evidence
 
-**Status:** Draft for user review.
+**Status:** Approved by the user on 2026-11-27 via `$workflow-plan`, following the earlier selection of the recommended approach.
 
 **Issue:** [#2 — Add secure pairing and Mac monitoring controls; gate remote lock](https://github.com/hornley/near-but-far/issues/2).
 

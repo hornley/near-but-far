@@ -30,6 +30,9 @@ private struct RecentActivityRow: View {
         guard let separator = event.range(of: "  ") else { return ("", event) }
         let timestamp = String(event[..<separator.lowerBound])
         let value = String(event[separator.upperBound...])
+        if value.hasPrefix("connect_failed ") {
+            return (timestamp, "Bluetooth connection failed · \(value.dropFirst("connect_failed ".count))")
+        }
         let labels: [String: String] = [
             "scan_started": "Scanning for Mac",
             "connected": "Bluetooth connected",

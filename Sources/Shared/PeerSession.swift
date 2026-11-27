@@ -90,6 +90,13 @@ enum PeerSessionError: Error, Equatable {
 struct SessionEffects {
     let outbound: [OutboundRecord]
     let events: [PeerSessionEvent]
+    let generatedPairingPrepared: Bool
+
+    init(outbound: [OutboundRecord], events: [PeerSessionEvent], generatedPairingPrepared: Bool = false) {
+        self.outbound = outbound
+        self.events = events
+        self.generatedPairingPrepared = generatedPairingPrepared
+    }
 }
 
 @MainActor
@@ -290,6 +297,7 @@ final class PeerSession {
             next.phase = .awaitingMacApproval
             outbound.append(OutboundRecord(link: state.id, bytes: try seal(.pairingPrepared, on: next)))
             active = next
+            return SessionEffects(outbound: outbound, events: [], generatedPairingPrepared: true)
         case (.mac, .enrollMac):
             next.phase = .awaitingPhonePrepared
             active = next
