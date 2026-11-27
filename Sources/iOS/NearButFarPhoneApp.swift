@@ -42,7 +42,7 @@ private struct PhoneContentView: View {
                                onRetry: central.retryPairing,
                                onCancel: { showsPairing = false })
         }
-        .onChange(of: statusTitle) { _, title in
+        .onChange(of: presencePresentation.announcementTitle) { _, title in
             UIAccessibility.post(notification: .announcement, argument: title)
         }
         .onChange(of: macMonitoringTitle) { _, title in
@@ -124,6 +124,12 @@ private struct PhoneContentView: View {
                 .minimumScaleFactor(0.62)
                 .accessibilityAddTraits(.isHeader)
 
+            if let countdownDisclosure {
+                Text(countdownDisclosure)
+                    .font(.caption)
+                    .multilineTextAlignment(.center)
+            }
+
             Text(homeSignalReading)
                 .font(.system(size: 18, weight: .medium))
                 .foregroundStyle(Color.white.opacity(0.64))
@@ -159,7 +165,7 @@ private struct PhoneContentView: View {
 
     private var statusRows: some View {
         VStack(spacing: 0) {
-            statusRow("Phone presence", value: statusTitle)
+            statusRow("Phone presence", value: statusDetailsTitle)
             Divider().overlay(.white.opacity(0.16))
             statusRow("Signal", value: signalSummary)
             if let countdownSeconds {
@@ -284,16 +290,13 @@ private struct PhoneContentView: View {
         }
     }
 
-    private var statusTitle: String {
-        switch model.presenceState {
-        case .waiting: "Waiting for Mac"
-        case .nearby: "Nearby"
-        case .weakSignalCountdown: "Weak signal"
-        case .connectionLostCountdown: "Signal lost"
-        case .away: "Away"
-        case .unavailable: "Unavailable"
-        }
+    private var presencePresentation: PhonePresencePresentation {
+        PhonePresencePresentation(state: model.presenceState)
     }
+
+    private var statusTitle: String { presencePresentation.headline }
+    private var statusDetailsTitle: String { presencePresentation.detailsHeadline }
+    private var countdownDisclosure: String? { presencePresentation.countdownDisclosure }
 
     private var statusContext: String? {
         switch model.presenceState {
@@ -321,10 +324,10 @@ private struct PhoneContentView: View {
     }
 
     private var statusCardAccessibilityLabel: String {
-        let countdown = countdownSeconds.map { "\(formatDuration($0)) remaining. " } ?? ""
+        let disclosure = countdownDisclosure.map { "\($0). " } ?? ""
         let context = statusContext.map { "\($0). " } ?? ""
         let battery = model.macBatteryLevel.map { "Mac battery, \($0) percent." } ?? "Mac battery unavailable."
-        return "Phone presence: \(statusTitle). \(countdown)\(context)\(signalSummaryAccessibility) \(battery)"
+        return "Phone presence: \(presencePresentation.headline). \(disclosure)\(context)\(signalSummaryAccessibility) \(battery)"
     }
 
     private var pairingTitle: String {

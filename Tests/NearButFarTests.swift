@@ -462,6 +462,66 @@ final class NearButFarTests: XCTestCase {
     }
 
     @MainActor
+    func testPhoneCachesNewDurationWithoutChangingActiveEstimate() throws {
+        let suite = "CountdownDurationTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let model = PhoneModel(userDefaults: defaults)
+        XCTAssertEqual(model.countdownDuration.seconds, 60)
+        model.didAuthenticate(peerID: UUID())
+        let start = ContinuousClock.now
+        model.didReadAuthenticatedRSSI(-70, at: start)
+        model.didReceiveAuthenticated(.countdownDuration(30), at: start.advanced(by: .seconds(10)))
+        model.refreshPresence(at: start.advanced(by: .seconds(59)))
+        XCTAssertEqual(model.presenceState, .weakSignalCountdown(1))
+
+        model.didReceiveAuthenticated(.countdownDuration(91), at: start.advanced(by: .seconds(59)))
+        XCTAssertEqual(model.countdownDuration.seconds, 30)
+        let reloaded = PhoneModel(userDefaults: defaults)
+        XCTAssertEqual(reloaded.countdownDuration.seconds, 30)
+    }
+
+    @MainActor
+    func testDisconnectedEstimateUsesCachedDurationOrSixtySecondFallback() throws {
+        func assertEstimate(savedDuration: Int?, expectedStart: Duration, suite: String,
+                            file: StaticString = #filePath, line: UInt = #line) throws {
+            let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+            defer { defaults.removePersistentDomain(forName: suite) }
+            if let savedDuration { defaults.set(savedDuration, forKey: "countdownDurationSeconds") }
+            let model = PhoneModel(userDefaults: defaults)
+            let start = ContinuousClock.now
+            model.didAuthenticate(peerID: UUID())
+            model.didReceiveAuthenticated(.challenge(sequence: 1), at: start)
+            model.didDisconnect(cause: .transportLost, at: start)
+            model.refreshPresence(at: start.advanced(by: expectedStart))
+            XCTAssertEqual(model.presenceState, .connectionLostCountdown(1), file: file, line: line)
+        }
+
+        try assertEstimate(savedDuration: nil, expectedStart: .seconds(59),
+                           suite: "CountdownFallback-\(UUID().uuidString)")
+        try assertEstimate(savedDuration: 90, expectedStart: .seconds(89),
+                           suite: "CountdownCached-\(UUID().uuidString)")
+    }
+
+    func testPhonePresencePresentationSeparatesWeakSignalFromConnectionLoss() {
+        let weak = PhonePresencePresentation(state: .weakSignalCountdown(45))
+        XCTAssertEqual(weak.headline, "Locks in 45s")
+        XCTAssertEqual(weak.detailsHeadline, "Weak signal")
+        XCTAssertTrue(weak.countdownDisclosure?.contains("macOS stays unlocked") == true)
+
+        let lost = PhonePresencePresentation(state: .connectionLostCountdown(45))
+        XCTAssertEqual(lost.headline, "Signal lost")
+        XCTAssertEqual(lost.detailsHeadline, "Signal lost")
+        XCTAssertTrue(lost.countdownDisclosure?.contains("Local estimate") == true)
+        XCTAssertTrue(lost.countdownDisclosure?.contains("45s") == true)
+        XCTAssertEqual(
+            PhonePresencePresentation(state: .weakSignalCountdown(44)).announcementTitle,
+            weak.announcementTitle
+        )
+    }
+
+    @MainActor
     private func makeEstablishedSessions() throws -> (PeerSession, PeerSession, LinkID, LinkID) {
         let phoneKey = try Curve25519.KeyAgreement.PrivateKey(rawRepresentation: Data(repeating: 1, count: 32))
         let macKey = try Curve25519.KeyAgreement.PrivateKey(rawRepresentation: Data(repeating: 2, count: 32))
