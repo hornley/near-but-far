@@ -2,8 +2,6 @@
 
 Near But Far is a local macOS menu-bar app and iPhone companion. The current branch implements one-use QR pairing, authenticated BLE presence, and an app-owned full-screen deterrent. The app screen has its own authenticated state; it does **not** lock or observe macOS's secure lock state.
 
-See [the current project handoff](docs/project-handoff.md) for remaining physical validation, pairing checks, and lock-screen constraints.
-
 ## Current behavior
 
 - The Mac displays a one-use QR pairing offer that expires after two minutes. The Mac user approves the phone locally before its identity is saved.
@@ -39,3 +37,7 @@ See [the approved design](docs/superpowers/specs/2026-11-23-near-but-far-app-des
 ## Prototype evidence
 
 The earlier unauthenticated prototype recorded 1,834 acknowledgements from `-84` to `-28 dBm`, three missed responses, nine weak-signal events, ten recoveries, and three log-only `would_lock` events at 60 seconds. A later `-70 dBm` sample recovered at the same whole-second timestamp as expiry, so the order remains unresolved. These logs are historical feasibility evidence; unauthenticated prototype traffic is not used as application presence and never locks the Mac.
+
+## License
+
+Licensed under the [MIT License](LICENSE).
