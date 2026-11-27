@@ -135,8 +135,8 @@ struct MacMenuBarPanel: View {
 
     private var thresholdBinding: Binding<Double> {
         Binding(
-            get: { Double(coordinator.signalThreshold.rawValue) },
-            set: { coordinator.setSignalThreshold(Int16($0)) }
+            get: { -140 - Double(coordinator.signalThreshold.rawValue) },
+            set: { coordinator.setSignalThreshold(Int16(-140 - $0)) }
         )
     }
 
