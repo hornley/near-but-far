@@ -2,12 +2,13 @@ import AVFoundation
 import SwiftUI
 
 enum PairingScannerState: Equatable {
-    case unpaired, scanning, waitingForMacApproval, paired, expired, qrMismatch, untrustedMac, cameraUnavailable, storageUnavailable, bluetoothUnavailable
+    case unpaired, scanning, connecting, waitingForMacApproval, paired, expired, qrMismatch, untrustedMac, cameraUnavailable, storageUnavailable, bluetoothUnavailable
 
     var title: String {
         switch self {
         case .unpaired: "Not paired"
         case .scanning: "Scan the code on your Mac."
+        case .connecting: "Connecting to Mac."
         case .waitingForMacApproval: "Waiting for Mac approval."
         case .paired: "Paired."
         case .expired: "Code expired"
@@ -23,6 +24,7 @@ enum PairingScannerState: Equatable {
         switch self {
         case .unpaired: "Open Pair iPhone on your Mac, then scan its one-use code."
         case .scanning: ""
+        case .connecting: "Keep this screen open while the secure connection starts."
         case .waitingForMacApproval: "Approve this phone on your Mac. Keep this screen open."
         case .paired: "This phone is paired with your Mac."
         case .expired: "The code expired. Create a new code on your Mac and scan it again."
@@ -41,7 +43,7 @@ enum PairingScannerState: Equatable {
         case .unpaired: "Scan Mac QR code"
         case .untrustedMac: "Retry connection"
         case .cameraUnavailable: "Try camera again"
-        case .scanning, .waitingForMacApproval, .paired, .storageUnavailable, .bluetoothUnavailable: nil
+        case .scanning, .connecting, .waitingForMacApproval, .paired, .storageUnavailable, .bluetoothUnavailable: nil
         }
     }
 }
