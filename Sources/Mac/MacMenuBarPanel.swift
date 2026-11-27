@@ -116,6 +116,7 @@ struct MacMenuBarPanel: View {
                         .accessibilityLabel("Signal threshold \(coordinator.signalThreshold.rawValue) dBm")
                 }
                 Slider(value: thresholdBinding, in: -90 ... -50, step: 1)
+                    .environment(\.layoutDirection, .leftToRight)
                     .accessibilityLabel("Signal threshold")
                     .accessibilityValue("\(coordinator.signalThreshold.rawValue) dBm")
                 Text("This threshold controls presence detection and the app screen; it does not lock macOS.")
