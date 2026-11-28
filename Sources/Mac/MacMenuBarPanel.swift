@@ -124,6 +124,22 @@ struct MacMenuBarPanel: View {
                     .foregroundStyle(.secondary)
             }
 
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Time to lock")
+                        .font(.subheadline.weight(.medium))
+                    Spacer()
+                    Text(durationLabel(coordinator.countdownDuration.seconds))
+                        .font(.system(.subheadline, design: .monospaced))
+                }
+                Slider(value: countdownDurationBinding, in: 15 ... 180, step: 5)
+                    .accessibilityLabel("Time to lock")
+                    .accessibilityValue(durationLabel(coordinator.countdownDuration.seconds))
+                Text("This activates Near But Far’s app screen; it does not lock macOS.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Button("Pair iPhone", systemImage: "qrcode") {
                 openPairing()
             }
@@ -138,6 +154,20 @@ struct MacMenuBarPanel: View {
             get: { -140 - Double(coordinator.signalThreshold.rawValue) },
             set: { coordinator.setSignalThreshold(Int16(-140 - $0)) }
         )
+    }
+
+    private var countdownDurationBinding: Binding<Double> {
+        Binding(
+            get: { Double(coordinator.countdownDuration.seconds) },
+            set: { coordinator.setCountdownDuration(Int($0.rounded())) }
+        )
+    }
+
+    private func durationLabel(_ seconds: Int) -> String {
+        guard seconds >= 60 else { return "\(seconds) sec" }
+        let minutes = seconds / 60
+        let remainder = seconds % 60
+        return remainder == 0 ? "\(minutes) min" : "\(minutes) min \(remainder) sec"
     }
 
     private func openPairing() {
