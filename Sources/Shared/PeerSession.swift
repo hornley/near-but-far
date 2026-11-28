@@ -43,6 +43,7 @@ enum PeerMessage: Equatable {
     case acknowledgement(sequence: UInt32, rssi: Int16?)
     case status(MacStatus)
     case threshold(Int16)
+    case countdownDuration(UInt16)
     case appScreenCommand(AppScreenCommand)
     case appScreenState(AppScreenState)
     case macBatteryLevel(UInt8?)
@@ -363,7 +364,7 @@ final class PeerSession {
             events.append(.ready(peerID: peerID, sessionID: hash))
         case (.mac, .established, .acknowledgement), (.phone, .established, .challenge),
              (.phone, .established, .status), (.phone, .established, .threshold),
-             (.phone, .established, .macBatteryLevel),
+             (.phone, .established, .macBatteryLevel), (.phone, .established, .countdownDuration),
              (.mac, .established, .appScreenCommand), (.phone, .established, .appScreenState):
             guard next.expectedPeerID == peerID else { throw PeerSessionError.wrongPeer }
         default:
@@ -410,6 +411,9 @@ final class PeerSession {
         case let .threshold(value):
             let encoded = UInt16(bitPattern: value).bigEndian
             withUnsafeBytes(of: encoded) { bytes.append(contentsOf: $0) }
+        case let .countdownDuration(value):
+            var encoded = value.bigEndian
+            withUnsafeBytes(of: &encoded) { bytes.append(contentsOf: $0) }
         case .pairingPrepared, .pairingAccepted, .pairingComplete:
             break
         }
@@ -476,6 +480,11 @@ final class PeerSession {
             let level = payload[0]
             guard level == 0xff || level <= 100 else { throw PeerSessionError.malformedRecord }
             return .macBatteryLevel(level == 0xff ? nil : level)
+        case 11:
+            guard role == .phone, payload.count == 2 else { throw PeerSessionError.malformedRecord }
+            let value = UInt16(payload[0]) << 8 | UInt16(payload[1])
+            guard CountdownDuration(validating: Int(value)) != nil else { throw PeerSessionError.malformedRecord }
+            return .countdownDuration(value)
         default:
             throw PeerSessionError.malformedRecord
         }
@@ -485,7 +494,7 @@ final class PeerSession {
         switch (role, message) {
         case (.phone, .pairingPrepared), (.phone, .pairingComplete), (.phone, .acknowledgement),
              (.mac, .pairingAccepted), (.mac, .pairingComplete), (.mac, .challenge), (.mac, .status),
-             (.mac, .threshold), (.phone, .appScreenCommand), (.mac, .appScreenState),
+             (.mac, .threshold), (.mac, .countdownDuration), (.phone, .appScreenCommand), (.mac, .appScreenState),
              (.mac, .macBatteryLevel):
             return true
         default:
@@ -502,6 +511,8 @@ final class PeerSession {
             return level.map { $0 <= 100 } ?? true
         case let (.mac, .threshold(value)):
             return SignalThreshold(validating: value) != nil
+        case let (.mac, .countdownDuration(value)):
+            return CountdownDuration(validating: Int(value)) != nil
         default:
             return false
         }
@@ -519,6 +530,7 @@ final class PeerSession {
         case .appScreenCommand: 8
         case .appScreenState: 9
         case .macBatteryLevel: 10
+        case .countdownDuration: 11
         }
     }
 

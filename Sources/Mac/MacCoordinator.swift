@@ -43,6 +43,13 @@ final class MacCoordinator: ObservableObject {
             if let link = pairingLink, securePeerID != nil { sendThreshold(on: link) }
         }
     }
+    @Published private(set) var countdownDuration: CountdownDuration {
+        didSet {
+            UserDefaults.standard.set(countdownDuration.seconds, forKey: Self.countdownDurationPreferenceKey)
+            tracker.setConfiguredDuration(countdownDuration)
+            if let link = pairingLink, securePeerID != nil { sendCountdownDuration(on: link) }
+        }
+    }
     private let peripheral: MacPeripheral
     private let logger: CSVLogger?
     private let identityStore: MacPairedIdentityStore
@@ -68,6 +75,7 @@ final class MacCoordinator: ObservableObject {
 
     private static let monitoringPreferenceKey = "monitoringEnabled"
     private static let thresholdPreferenceKey = "signalThresholdDBm"
+    private static let countdownDurationPreferenceKey = "countdownDurationSeconds"
 
     var pairingAvailabilityMessage: String {
         if case let .unavailable(reason) = pairingCapability { return reason }
@@ -96,6 +104,11 @@ final class MacCoordinator: ObservableObject {
         signalThreshold = threshold
     }
 
+    func setCountdownDuration(_ seconds: Int) {
+        guard let duration = CountdownDuration(validating: seconds) else { return }
+        countdownDuration = duration
+    }
+
     init(
         peripheral: MacPeripheral? = nil,
         identityStore: MacPairedIdentityStore? = nil,
@@ -107,8 +120,11 @@ final class MacCoordinator: ObservableObject {
         monitoringEnabled = UserDefaults.standard.bool(forKey: Self.monitoringPreferenceKey)
         let storedThreshold = UserDefaults.standard.object(forKey: Self.thresholdPreferenceKey) as? Int
         let initialThreshold = storedThreshold.flatMap { SignalThreshold(validating: Int16(clamping: $0)) } ?? .default
+        let storedDuration = UserDefaults.standard.object(forKey: Self.countdownDurationPreferenceKey) as? Int
+        let initialDuration = storedDuration.flatMap { CountdownDuration(validating: $0) } ?? .defaultDuration
         signalThreshold = initialThreshold
-        tracker = PresenceTracker(threshold: initialThreshold)
+        countdownDuration = initialDuration
+        tracker = PresenceTracker(threshold: initialThreshold, duration: initialDuration)
         do {
             logger = try CSVLogger()
             logPath = logger?.fileURL.path ?? ""
@@ -306,6 +322,7 @@ final class MacCoordinator: ObservableObject {
                 pairedPhoneFingerprint = Self.fingerprint(try? identityStore.pairedIdentity()?.publicKey)
                 pairingStatus = "The phone authenticated. Waiting for a fresh verified presence message."
                 sendThreshold(on: link)
+                sendCountdownDuration(on: link)
                 sendMacBatteryLevel(macBatteryPercentage, on: link)
                 sendAppScreenState(on: link)
                 if monitoringEnabled { beginMonitoringEpoch() }
@@ -617,7 +634,7 @@ final class MacCoordinator: ObservableObject {
         lastRSSI = nil
         outstandingSequence = nil
         schedule.clearPendingChallenge()
-        if resetPresence { tracker = PresenceTracker(threshold: signalThreshold) }
+        if resetPresence { tracker = PresenceTracker(threshold: signalThreshold, duration: countdownDuration) }
         countdown = nil
     }
 
@@ -676,6 +693,12 @@ final class MacCoordinator: ObservableObject {
     private func sendThreshold(on link: LinkID) {
         guard pairingLink == link, let session = pairingSession, securePeerID != nil else { return }
         do { process(try session.send(.threshold(signalThreshold.rawValue), on: link), on: link) }
+        catch { closePairingSession() }
+    }
+
+    private func sendCountdownDuration(on link: LinkID) {
+        guard pairingLink == link, let session = pairingSession, securePeerID != nil else { return }
+        do { process(try session.send(.countdownDuration(UInt16(countdownDuration.seconds)), on: link), on: link) }
         catch { closePairingSession() }
     }
 

@@ -10,6 +10,48 @@ enum PhonePresenceState: Equatable {
     case unavailable
 }
 
+struct PhonePresencePresentation {
+    let state: PhonePresenceState
+
+    var headline: String {
+        switch state {
+        case .waiting: "Waiting for Mac"
+        case .nearby: "Nearby"
+        case .weakSignalCountdown(let seconds): "Locks in \(seconds)s"
+        case .connectionLostCountdown: "Signal lost"
+        case .away: "Away"
+        case .unavailable: "Unavailable"
+        }
+    }
+
+    var detailsHeadline: String {
+        switch state {
+        case .weakSignalCountdown: "Weak signal"
+        case .connectionLostCountdown: "Signal lost"
+        default: headline
+        }
+    }
+
+    var countdownDisclosure: String? {
+        switch state {
+        case .weakSignalCountdown:
+            "Near But Far’s app screen only; macOS stays unlocked."
+        case .connectionLostCountdown(let seconds):
+            "Local estimate: app screen in \(seconds)s; macOS stays unlocked."
+        default:
+            nil
+        }
+    }
+
+    var announcementTitle: String {
+        switch state {
+        case .weakSignalCountdown: "Weak signal countdown started"
+        case .connectionLostCountdown: "Signal lost"
+        default: headline
+        }
+    }
+}
+
 enum PhoneMacStatus: Equatable {
     case unavailable, waiting, nearby, weakSignal, signalLost
 }
@@ -57,7 +99,8 @@ final class PhoneModel: ObservableObject {
     var localSignalThreshold: SignalThreshold { presenceTracker.threshold }
     @Published private(set) var authenticatedPeerID: UUID?
     @Published private(set) var sessionReady = false
-    @Published private(set) var signalThreshold: SignalThreshold? = PhoneModel.loadSavedThreshold()
+    @Published private(set) var signalThreshold: SignalThreshold?
+    @Published private(set) var countdownDuration: CountdownDuration
     @Published private(set) var hasReceivedThresholdForSession = false
     var canLockNow: Bool { canSendAppScreenCommand }
     var canUnlock: Bool { canSendAppScreenCommand }
@@ -67,16 +110,24 @@ final class PhoneModel: ObservableObject {
         case connectionLost
     }
 
-    private var presenceTracker = PresenceTracker()
+    private var presenceTracker: PresenceTracker
+    private let userDefaults: UserDefaults
     private var lastChallengeAt: ContinuousClock.Instant?
     private var lastMacBatteryUpdateAt: ContinuousClock.Instant?
     private var lossReason: LossReason?
     private var bluetoothAvailable = true
 
     private static let thresholdPreferenceKey = "authenticatedMacSignalThresholdDBm"
+    private static let countdownDurationPreferenceKey = "countdownDurationSeconds"
 
-    init() {
-        if let signalThreshold { presenceTracker.threshold = signalThreshold }
+    init(userDefaults: UserDefaults = .standard) {
+        self.userDefaults = userDefaults
+        let threshold = Self.loadSavedThreshold(from: userDefaults)
+        signalThreshold = threshold
+        let storedDuration = userDefaults.object(forKey: Self.countdownDurationPreferenceKey) as? Int
+        let duration = storedDuration.flatMap(CountdownDuration.init(validating:)) ?? .defaultDuration
+        countdownDuration = duration
+        presenceTracker = PresenceTracker(threshold: threshold ?? .default, duration: duration)
     }
 
     func setBluetoothAvailable(_ available: Bool) {
@@ -103,7 +154,7 @@ final class PhoneModel: ObservableObject {
         case .reconnectAttempt:
             if presenceTracker.lossStartedAt == nil { lossReason = nil }
         case .pairingStarted, .bluetoothUnavailable:
-            presenceTracker = PresenceTracker(threshold: signalThreshold ?? .default)
+            presenceTracker = PresenceTracker(threshold: signalThreshold ?? .default, duration: countdownDuration)
             lossReason = nil
         }
         refreshPresence(at: now)
@@ -127,7 +178,13 @@ final class PhoneModel: ObservableObject {
             signalThreshold = threshold
             hasReceivedThresholdForSession = true
             presenceTracker.threshold = threshold
-            UserDefaults.standard.set(Int(rawValue), forKey: Self.thresholdPreferenceKey)
+            userDefaults.set(Int(rawValue), forKey: Self.thresholdPreferenceKey)
+        case let .countdownDuration(seconds):
+            guard sessionReady,
+                  let duration = CountdownDuration(validating: Int(seconds)) else { return }
+            countdownDuration = duration
+            userDefaults.set(duration.seconds, forKey: Self.countdownDurationPreferenceKey)
+            presenceTracker.setConfiguredDuration(duration)
         case let .appScreenState(state):
             guard sessionReady else { return }
             appScreenState = state
@@ -213,8 +270,8 @@ final class PhoneModel: ObservableObject {
         }
     }
 
-    private static func loadSavedThreshold() -> SignalThreshold? {
-        guard let stored = UserDefaults.standard.object(forKey: thresholdPreferenceKey) as? Int,
+    private static func loadSavedThreshold(from userDefaults: UserDefaults) -> SignalThreshold? {
+        guard let stored = userDefaults.object(forKey: thresholdPreferenceKey) as? Int,
               let value = Int16(exactly: stored) else { return nil }
         return SignalThreshold(validating: value)
     }
