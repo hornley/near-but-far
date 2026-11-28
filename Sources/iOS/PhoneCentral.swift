@@ -44,6 +44,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
     private var outgoingExhausted = false
     private var pendingFrames: [Data] = []
     private var writeInFlight = false
+    private var pairingPreparedRequestQueued = false
     private var pendingRSSI: (sequence: UInt32, link: LinkID)?
     private var identityStoreReady = true
     private var enrollmentLink = false
@@ -141,7 +142,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
             enrollmentLink = false
             scannedOffer = offer
             scheduleOfferExpiry(for: offer)
-            pairingState = .waitingForMacApproval
+            pairingState = .connecting
             scanAgain()
         } catch PeerSessionError.pairingExpired {
             pairingState = .expired
@@ -212,7 +213,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         }
         central.stopScan()
         central.scanForPeripherals(withServices: [BLEProtocol.serviceUUID])
-        connectionState = "Scanning for Mac"
+        connectionState = intentIsEnrollment ? "Connecting to Mac" : "Scanning for Mac"
         record("scan_started")
     }
 
@@ -250,7 +251,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         }
         peripheral = restored
         restored.delegate = self
-        connectionState = "Restoring connection"
+        connectionState = intentIsEnrollment ? "Connecting to Mac" : "Restoring connection"
         armPhaseDeadline(.connecting, duration: .seconds(15))
         central.connect(restored)
     }
@@ -262,7 +263,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         self.peripheral = peripheral
         peripheral.delegate = self
         central.stopScan()
-        connectionState = "Connecting"
+        connectionState = intentIsEnrollment ? "Connecting to Mac" : "Connecting"
         armPhaseDeadline(.connecting, duration: .seconds(15))
         central.connect(peripheral)
     }
@@ -274,7 +275,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         armPhaseDeadline(.serviceDiscovery, duration: .seconds(12))
         model.didDisconnect(cause: .reconnectAttempt, at: .now)
         record("connected")
-        connectionState = "Discovering service"
+        connectionState = intentIsEnrollment ? "Connecting to Mac" : "Discovering service"
         peripheral.delegate = self
         peripheral.discoverServices([BLEProtocol.serviceUUID])
     }
@@ -282,7 +283,12 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         guard peripheral === self.peripheral else { return }
         cancelPhaseDeadline()
-        record("connect_failed")
+        if let error {
+            let nsError = error as NSError
+            record("connect_failed domain=\(nsError.domain) code=\(nsError.code)")
+        } else {
+            record("connect_failed")
+        }
         scheduleRecovery("Could not connect to the Mac.")
     }
 
@@ -374,7 +380,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         secure.onEvent = { [weak self] event in self?.handleSessionEvent(event, on: link) }
         do {
             process(try secure.start(on: link))
-            connectionState = intentIsEnrollment ? "Waiting for Mac approval" : "Authenticating Mac"
+            connectionState = intentIsEnrollment ? "Connecting to Mac" : "Authenticating Mac"
         } catch {
             failSecureLink(link, error: error as? PeerSessionError ?? .internalFailure)
         }
@@ -403,12 +409,18 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
             return
         }
         flushWrites()
+        if pairingPreparedRequestQueued, pendingFrames.isEmpty, !writeInFlight {
+            pairingPreparedRequestQueued = false
+            pairingState = .waitingForMacApproval
+            connectionState = "Waiting for Mac approval"
+        }
     }
 
     private var intentIsEnrollment: Bool { scannedOffer != nil }
 
     private func process(_ effects: SessionEffects) {
         guard let link = activeLink else { return }
+        if effects.generatedPairingPrepared { pairingPreparedRequestQueued = true }
         for event in effects.events {
             handleSessionEvent(event, on: link)
         }
@@ -428,6 +440,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         guard activeLink == link else { return }
         switch event {
             case let .ready(peerID, _):
+                pairingPreparedRequestQueued = false
                 cancelPhaseDeadline()
                 cancelOfferExpiry()
                 cancelRecovery(resetAttempts: true)
@@ -487,6 +500,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         activeLink = nil
         pendingFrames.removeAll()
         writeInFlight = false
+        pairingPreparedRequestQueued = false
         pendingRSSI = nil
         scannedOffer?.invalidate()
         scannedOffer = nil
@@ -539,6 +553,7 @@ final class PhoneCentral: NSObject, ObservableObject, @preconcurrency CBCentralM
         activeLink = nil
         pendingFrames.removeAll()
         writeInFlight = false
+        pairingPreparedRequestQueued = false
         pendingRSSI = nil
         outgoingSequence = 0
         outgoingExhausted = false

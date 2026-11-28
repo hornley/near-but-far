@@ -334,6 +334,7 @@ private struct PhoneContentView: View {
         switch pairingPresentationState {
         case .unpaired: "Not paired"
         case .scanning: central.bluetoothIsAvailable ? "Scanning for Mac" : "Bluetooth unavailable"
+        case .connecting: central.bluetoothIsAvailable ? "Connecting to Mac" : "Bluetooth unavailable"
         case .waitingForMacApproval: central.bluetoothIsAvailable ? "Waiting for Mac approval" : "Bluetooth unavailable"
         case .paired: model.sessionReady ? "Paired" : "Reconnecting"
         case .expired: "Pairing expired"
@@ -401,7 +402,7 @@ private struct PhoneContentView: View {
     private var pairingPresentationState: PairingScannerState {
         guard !central.bluetoothIsAvailable else { return central.pairingState }
         switch central.pairingState {
-        case .scanning, .waitingForMacApproval, .qrMismatch, .untrustedMac: return .bluetoothUnavailable
+        case .scanning, .connecting, .waitingForMacApproval, .qrMismatch, .untrustedMac: return .bluetoothUnavailable
         default: return central.pairingState
         }
     }
